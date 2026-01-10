@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Sparkles, Smile, Frown, Zap, Coffee, Play } from 'lucide-react';
+import { Send, Bot, Sparkles, Smile, Frown, Zap, Coffee, Play, AlertCircle, RefreshCw } from 'lucide-react';
 import { Track } from '../types/types';
 import { usePlayer } from '../context/PlayerContext';
 import { aiAPI } from '../services/api';
@@ -27,6 +27,7 @@ const AIChat: React.FC = () => {
   const [mood, setMood] = useState<Mood>('Neutral');
   const [recommendations, setRecommendations] = useState<Track[]>([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { playTrack, setPlaylist } = usePlayer();
 
@@ -41,7 +42,7 @@ const AIChat: React.FC = () => {
    * Send message to AI
    */
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isTyping) return;
 
     const userMsg: Message = {
       id: Date.now(),
@@ -53,6 +54,7 @@ const AIChat: React.FC = () => {
     setMessages((prev) => [...prev, userMsg]);
     setInputValue('');
     setIsTyping(true);
+    setError(null);
 
     try {
       // Build conversation history for API
@@ -71,7 +73,7 @@ const AIChat: React.FC = () => {
 
       console.log('💬 Sending message to AI...');
       
-      // Send to AI with mood detection
+      // Send to AI with mood detection enabled
       const response = await aiAPI.chat(conversationHistory, true);
 
       // Add AI response
@@ -87,21 +89,28 @@ const AIChat: React.FC = () => {
       // Update mood if detected
       if (response.mood) {
         const detectedMood = response.mood.mood;
-        console.log(`🎭 Detected mood: ${detectedMood} (${response.mood.confidence})`);
-        setMood(detectedMood);
+        console.log(`🎭 Detected mood: ${detectedMood} (confidence: ${response.mood.confidence})`);
+        
+        // Only update mood if confidence is high enough
+        if (response.mood.confidence >= 0.5) {
+          setMood(detectedMood);
 
-        // Get music recommendations for the detected mood
-        if (detectedMood !== 'Neutral') {
-          loadRecommendations(detectedMood);
+          // Get music recommendations for the detected mood
+          if (detectedMood !== 'Neutral') {
+            loadRecommendations(detectedMood);
+          }
         }
       }
 
     } catch (error: any) {
       console.error('❌ AI chat error:', error);
       
+      const errorMessage = error.response?.data?.message || error.message || 'Connection failed';
+      setError(errorMessage);
+      
       const errorMsg: Message = {
         id: Date.now() + 1,
-        text: "Sorry, I'm having trouble connecting right now. Please try again!",
+        text: `Sorry, I'm having trouble connecting right now. ${errorMessage}. Please try again!`,
         sender: 'ai',
         timestamp: new Date(),
       };
@@ -117,20 +126,36 @@ const AIChat: React.FC = () => {
    */
   const loadRecommendations = async (detectedMood: Mood) => {
     setIsLoadingRecommendations(true);
+    setError(null);
 
     try {
       console.log(`🎵 Getting recommendations for mood: ${detectedMood}`);
       
+      // Request recommendations with YouTube search enabled
       const response = await aiAPI.recommend(detectedMood, '', true);
       
       if (response.tracks && response.tracks.length > 0) {
         setRecommendations(response.tracks);
         console.log(`✅ Got ${response.tracks.length} recommendations`);
+      } else {
+        console.warn('⚠️ No tracks returned from recommendations');
+        setRecommendations([]);
       }
     } catch (error: any) {
       console.error('❌ Failed to get recommendations:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      setError(`Failed to load recommendations: ${errorMessage}`);
     } finally {
       setIsLoadingRecommendations(false);
+    }
+  };
+
+  /**
+   * Retry loading recommendations
+   */
+  const retryRecommendations = () => {
+    if (mood !== 'Neutral') {
+      loadRecommendations(mood);
     }
   };
 
@@ -140,6 +165,16 @@ const AIChat: React.FC = () => {
   const handleTrackClick = (track: Track) => {
     setPlaylist(recommendations);
     playTrack(track);
+  };
+
+  /**
+   * Handle Enter key press
+   */
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   const moodIcons = {
@@ -171,6 +206,22 @@ const AIChat: React.FC = () => {
           {moodIcons[mood]}
         </div>
       </div>
+
+      {/* Error Banner */}
+      {error && (
+        <div className="mx-4 mt-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+          <button 
+            onClick={() => setError(null)}
+            className="text-red-400 hover:text-red-300"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div 
@@ -215,9 +266,20 @@ const AIChat: React.FC = () => {
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
               Suggested for your mood
             </p>
-            {isLoadingRecommendations && (
-              <div className="w-4 h-4 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
-            )}
+            <div className="flex items-center gap-2">
+              {isLoadingRecommendations && (
+                <div className="w-4 h-4 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
+              )}
+              {!isLoadingRecommendations && recommendations.length === 0 && (
+                <button
+                  onClick={retryRecommendations}
+                  className="text-zinc-400 hover:text-white transition"
+                  title="Retry loading recommendations"
+                >
+                  <RefreshCw size={16} />
+                </button>
+              )}
+            </div>
           </div>
 
           {isLoadingRecommendations ? (
@@ -250,9 +312,15 @@ const AIChat: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-zinc-500 text-center py-4">
-              Loading recommendations...
-            </p>
+            <div className="text-center py-4">
+              <p className="text-xs text-zinc-500 mb-2">No recommendations available</p>
+              <button
+                onClick={retryRecommendations}
+                className="text-xs text-[#1DB954] hover:underline"
+              >
+                Try again
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -266,13 +334,13 @@ const AIChat: React.FC = () => {
             className="flex-1 bg-transparent text-sm py-2 focus:outline-none placeholder:text-zinc-500"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={handleKeyDown}
             disabled={isTyping}
           />
           <button 
             onClick={handleSend}
             disabled={!inputValue.trim() || isTyping}
-            className="bg-[#1DB954] text-black p-2.5 rounded-full hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:hover:scale-100"
+            className="bg-[#1DB954] text-black p-2.5 rounded-full hover:scale-105 active:scale-95 transition disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
           >
             <Send size={18} />
           </button>
