@@ -10,8 +10,6 @@ backend/.env
 *.log
 logs/
 
-# Backend cache
-backend/audio_cache/
 
 # OS / editor files
 .DS_Store

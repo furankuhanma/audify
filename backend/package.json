@@ -18,7 +18,8 @@
     "axios": "^1.6.2",
     "youtube-dl-exec": "^2.4.8",
     "fluent-ffmpeg": "^2.1.2",
-    "node-cache": "^5.1.2"
+    "node-cache": "^5.1.2",
+    "mysql2": "^3.6.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
