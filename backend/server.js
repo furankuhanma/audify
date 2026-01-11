@@ -15,6 +15,7 @@ const searchRoutes = require('./audio_cache/routes/search');
 const streamRoutes = require('./routes/stream');
 const aiRoutes = require('./routes/ai');
 const playlistRoutes = require('./routes/playlist');
+const authRoutes = require('./routes/auth'); // ✅ NEW: Auth routes
 
 // Middleware
 app.use(cors());
@@ -86,6 +87,7 @@ app.get('/api/stats', async (req, res) => {
 });
 
 // API Routes
+app.use('/api/auth', authRoutes);           // ✅ NEW: Authentication endpoints
 app.use('/api/search', searchRoutes);
 app.use('/api/stream', streamRoutes);
 app.use('/api/ai', aiRoutes);
@@ -100,6 +102,10 @@ app.use((req, res) => {
       'GET /api/health',
       'GET /api/config/test',
       'GET /api/stats',
+      'POST /api/auth/register',      // ✅ NEW
+      'POST /api/auth/login',          // ✅ NEW
+      'POST /api/auth/logout',         // ✅ NEW
+      'GET /api/auth/me',              // ✅ NEW
       'GET /api/search?q=query',
       'GET /api/search/trending',
       'GET /api/stream/:videoId',
@@ -122,8 +128,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Initialize database and start server
-async function startServer() {
+// ✅ NEW: Initialize database with users table
+async function initializeDatabase() {
   try {
     // Ensure database exists
     console.log('🔌 Initializing database...');
@@ -132,10 +138,69 @@ async function startServer() {
     // Connect to database
     await database.connect();
     
-    // Initialize tables
+    // Initialize existing tables
     await database.initializeTables();
     
-    console.log('✅ Database ready');
+    // ✅ NEW: Create users table
+    console.log('👤 Creating users table...');
+    await database.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        last_login TIMESTAMP NULL,
+        is_active BOOLEAN DEFAULT 1,
+        INDEX idx_username (username),
+        INDEX idx_active (is_active)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    
+    // ✅ NEW: Update playlists table to link with users (if column doesn't exist)
+    console.log('🔗 Updating playlists table...');
+    try {
+      await database.query(`
+        ALTER TABLE playlists 
+        ADD COLUMN user_id INT NULL AFTER id,
+        ADD INDEX idx_user_playlists (user_id),
+        ADD FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      `);
+      console.log('✅ Playlists table updated with user_id');
+    } catch (error) {
+      // Column might already exist, ignore error
+      if (!error.message.includes('Duplicate column name')) {
+        console.warn('⚠️ Could not add user_id to playlists:', error.message);
+      }
+    }
+    
+    // ✅ NEW: Create user_sessions table
+    console.log('🔐 Creating user_sessions table...');
+    await database.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        session_token VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_session_token (session_token),
+        INDEX idx_user_sessions (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    
+    console.log('✅ Database ready with authentication tables');
+
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error.message);
+    throw error;
+  }
+}
+
+// Initialize database and start server
+async function startServer() {
+  try {
+    await initializeDatabase();
 
     // Start server
     app.listen(PORT, () => {
@@ -147,13 +212,22 @@ async function startServer() {
       console.log(`📊 Statistics: http://localhost:${PORT}/api/stats`);
       console.log('=====================================\n');
       console.log('Available API Endpoints:');
-      console.log('  - GET  /api/search?q=query');
-      console.log('  - GET  /api/search/trending');
-      console.log('  - GET  /api/stream/:videoId');
-      console.log('  - POST /api/ai/chat');
-      console.log('  - POST /api/ai/recommend');
-      console.log('  - GET  /api/playlists');
-      console.log('  - POST /api/playlists');
+      console.log('  🔐 Authentication:');
+      console.log('    - POST /api/auth/register');
+      console.log('    - POST /api/auth/login');
+      console.log('    - POST /api/auth/logout');
+      console.log('    - GET  /api/auth/me');
+      console.log('  🔍 Search:');
+      console.log('    - GET  /api/search?q=query');
+      console.log('    - GET  /api/search/trending');
+      console.log('  🎵 Music:');
+      console.log('    - GET  /api/stream/:videoId');
+      console.log('  🤖 AI:');
+      console.log('    - POST /api/ai/chat');
+      console.log('    - POST /api/ai/recommend');
+      console.log('  📋 Playlists:');
+      console.log('    - GET  /api/playlists');
+      console.log('    - POST /api/playlists');
       console.log('=====================================\n');
     });
 
