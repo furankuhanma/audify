@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, Sparkles, Smile, Frown, Zap, Coffee, Play, AlertCircle, RefreshCw } from 'lucide-react';
+import { Send, Bot, Sparkles, Smile, Frown, Zap, Coffee, Play, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Track } from '../types/types';
 import { usePlayer } from '../context/PlayerContext';
 import { aiAPI } from '../services/api';
@@ -14,6 +15,8 @@ interface Message {
 type Mood = 'Happy' | 'Sad' | 'Energetic' | 'Relaxed' | 'Neutral';
 
 const AIChat: React.FC = () => {
+  const navigate = useNavigate();
+  const { playTrack, setPlaylist } = usePlayer();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -29,7 +32,6 @@ const AIChat: React.FC = () => {
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { playTrack, setPlaylist } = usePlayer();
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -38,9 +40,6 @@ const AIChat: React.FC = () => {
     }
   }, [messages, isTyping]);
 
-  /**
-   * Send message to AI
-   */
   const handleSend = async () => {
     if (!inputValue.trim() || isTyping) return;
 
@@ -121,9 +120,6 @@ const AIChat: React.FC = () => {
     }
   };
 
-  /**
-   * Load music recommendations based on mood
-   */
   const loadRecommendations = async (detectedMood: Mood) => {
     setIsLoadingRecommendations(true);
     setError(null);
@@ -150,26 +146,17 @@ const AIChat: React.FC = () => {
     }
   };
 
-  /**
-   * Retry loading recommendations
-   */
   const retryRecommendations = () => {
     if (mood !== 'Neutral') {
       loadRecommendations(mood);
     }
   };
 
-  /**
-   * Handle track click
-   */
   const handleTrackClick = (track: Track) => {
     setPlaylist(recommendations);
     playTrack(track);
   };
 
-  /**
-   * Handle Enter key press
-   */
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -186,10 +173,18 @@ const AIChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-180px)] md:h-[calc(100vh-120px)] animate-in fade-in duration-500">
-      {/* Header / Mood Indicator */}
-      <div className="flex items-center justify-between p-4 bg-zinc-900/50 rounded-t-2xl border-b border-zinc-800">
+    <div className="flex flex-col h-screen bg-zinc-950 text-white">
+      {/* 1️⃣ HEADER - Fixed at top with back button */}
+      <div className="shrink-0 flex items-center justify-between p-4 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="flex items-center gap-3">
+          {/* Back Button */}
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-zinc-800 rounded-full transition"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          
           <div className="w-10 h-10 bg-[#1DB954]/20 rounded-full flex items-center justify-center border border-[#1DB954]/40">
             <Bot className="text-[#1DB954]" size={24} />
           </div>
@@ -207,126 +202,127 @@ const AIChat: React.FC = () => {
         </div>
       </div>
 
-      {/* Error Banner */}
-      {error && (
-        <div className="mx-4 mt-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
-          <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-          <button 
-            onClick={() => setError(null)}
-            className="text-red-400 hover:text-red-300"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
-      {/* Chat Messages */}
-      <div 
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar"
-      >
-        {messages.map((msg) => (
-          <div 
-            key={msg.id} 
-            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div 
-              className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-sm animate-in zoom-in-95 duration-200 ${
-                msg.sender === 'user' 
-                  ? 'bg-[#1DB954] text-black rounded-tr-none font-medium' 
-                  : 'bg-zinc-800 text-white rounded-tl-none'
-              }`}
+      {/* 2️⃣ SCROLL AREA - Only thing that scrolls (flex-1) */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        {/* Error Banner */}
+        {error && (
+          <div className="mx-4 mt-4 p-3 bg-red-900/20 border border-red-500/50 rounded-lg flex items-start gap-2">
+            <AlertCircle size={18} className="text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-red-400">{error}</p>
+            </div>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-300"
             >
-              <p className="text-sm leading-relaxed">{msg.text}</p>
-              <span className={`text-[9px] block mt-1 opacity-60 ${msg.sender === 'user' ? 'text-black' : 'text-zinc-400'}`}>
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
+              ×
+            </button>
           </div>
-        ))}
-        
-        {isTyping && (
-          <div className="flex justify-start animate-in fade-in slide-in-from-left-2">
-            <div className="bg-zinc-800 px-4 py-3 rounded-2xl rounded-tl-none flex gap-1">
-              <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        )}
+
+        {/* Messages */}
+        <div className="p-4 space-y-4">
+          {messages.map((msg) => (
+            <div 
+              key={msg.id} 
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div 
+                className={`max-w-[85%] px-4 py-3 rounded-2xl shadow-sm ${
+                  msg.sender === 'user' 
+                    ? 'bg-[#1DB954] text-black rounded-tr-none font-medium' 
+                    : 'bg-zinc-800 text-white rounded-tl-none'
+                }`}
+              >
+                <p className="text-sm leading-relaxed">{msg.text}</p>
+                <span className={`text-[9px] block mt-1 opacity-60 ${msg.sender === 'user' ? 'text-black' : 'text-zinc-400'}`}>
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
             </div>
+          ))}
+          
+          {/* Typing Indicator */}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-zinc-800 px-4 py-3 rounded-2xl rounded-tl-none flex gap-1">
+                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Suggestions - Inside scroll area */}
+        {mood !== 'Neutral' && (
+          <div className="p-4 bg-zinc-900/30 border-t border-zinc-800/50">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                Suggested for your mood
+              </p>
+              <div className="flex items-center gap-2">
+                {isLoadingRecommendations && (
+                  <div className="w-4 h-4 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
+                )}
+                {!isLoadingRecommendations && recommendations.length === 0 && (
+                  <button
+                    onClick={retryRecommendations}
+                    className="text-zinc-400 hover:text-white transition"
+                    title="Retry loading recommendations"
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {isLoadingRecommendations ? (
+              <div className="flex gap-3 overflow-x-auto">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex-shrink-0 w-32">
+                    <div className="aspect-square bg-zinc-800 rounded-lg mb-2 animate-pulse" />
+                    <div className="h-3 bg-zinc-800 rounded mb-1 animate-pulse" />
+                    <div className="h-2 bg-zinc-800 rounded w-2/3 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : recommendations.length > 0 ? (
+              <div className="flex gap-3 overflow-x-auto">
+                {recommendations.slice(0, 5).map((track) => (
+                  <div 
+                    key={track.id}
+                    onClick={() => handleTrackClick(track)}
+                    className="flex-shrink-0 w-32 group cursor-pointer"
+                  >
+                    <div className="relative aspect-square mb-2 overflow-hidden rounded-lg shadow-md">
+                      <img src={track.coverUrl} alt="" className="object-cover w-full h-full transition group-hover:scale-110" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        <Play className="fill-white text-white" size={24} />
+                      </div>
+                    </div>
+                    <h4 className="text-[11px] font-bold truncate text-zinc-100">{track.title}</h4>
+                    <p className="text-[9px] text-zinc-500 truncate">{track.artist}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-xs text-zinc-500 mb-2">No recommendations available</p>
+                <button
+                  onClick={retryRecommendations}
+                  className="text-xs text-[#1DB954] hover:underline"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Suggestions Section */}
-      {mood !== 'Neutral' && (
-        <div className="p-4 bg-zinc-900/30 border-t border-zinc-800/50">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-              Suggested for your mood
-            </p>
-            <div className="flex items-center gap-2">
-              {isLoadingRecommendations && (
-                <div className="w-4 h-4 border-2 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
-              )}
-              {!isLoadingRecommendations && recommendations.length === 0 && (
-                <button
-                  onClick={retryRecommendations}
-                  className="text-zinc-400 hover:text-white transition"
-                  title="Retry loading recommendations"
-                >
-                  <RefreshCw size={16} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {isLoadingRecommendations ? (
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex-shrink-0 w-32">
-                  <div className="aspect-square bg-zinc-800 rounded-lg mb-2 animate-pulse" />
-                  <div className="h-3 bg-zinc-800 rounded mb-1 animate-pulse" />
-                  <div className="h-2 bg-zinc-800 rounded w-2/3 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          ) : recommendations.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto no-scrollbar">
-              {recommendations.slice(0, 5).map((track) => (
-                <div 
-                  key={track.id}
-                  onClick={() => handleTrackClick(track)}
-                  className="flex-shrink-0 w-32 group cursor-pointer"
-                >
-                  <div className="relative aspect-square mb-2 overflow-hidden rounded-lg shadow-md">
-                    <img src={track.coverUrl} alt="" className="object-cover w-full h-full transition group-hover:scale-110" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                      <Play className="fill-white text-white" size={24} />
-                    </div>
-                  </div>
-                  <h4 className="text-[11px] font-bold truncate text-zinc-100">{track.title}</h4>
-                  <p className="text-[9px] text-zinc-500 truncate">{track.artist}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-xs text-zinc-500 mb-2">No recommendations available</p>
-              <button
-                onClick={retryRecommendations}
-                className="text-xs text-[#1DB954] hover:underline"
-              >
-                Try again
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Chat Input */}
-      <div className="p-4 bg-zinc-900 rounded-b-2xl">
+      {/* 3️⃣ INPUT BAR - Fixed at bottom, never scrolls */}
+      <div className="shrink-0 p-4 bg-zinc-900 border-t border-zinc-800 safe-area-inset-bottom">
         <div className="flex items-center gap-2 bg-zinc-800 p-1.5 pl-4 rounded-full border border-zinc-700 focus-within:border-[#1DB954] transition">
           <input 
             type="text" 

@@ -3,6 +3,8 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Track, Playlist } from '../types/types';
 
+
+console.log(import.meta.env.VITE_BACKEND_URL)
 // Backend base URL
 const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:3001';
 
