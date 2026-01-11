@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Music, Plus, Disc, LayoutGrid } from 'lucide-react';
 import { useLibrary } from '../context/LibraryContext';
@@ -25,7 +24,8 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    addPlaylist(playlistName);
+    // Pass 'default' as the cover URL for new playlists
+    addPlaylist(playlistName, 'default');
     setPlaylistName('');
     onClose();
   };

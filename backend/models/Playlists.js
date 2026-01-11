@@ -12,7 +12,7 @@ class Playlist {
       const {
         name,
         description = '',
-        coverUrl = 'https://picsum.photos/seed/playlist/600/600'
+        coverUrl = 'default' // Default to gray placeholder
       } = playlistData;
 
       const result = await database.query(
@@ -184,6 +184,19 @@ class Playlist {
           [playlistId, track.dbId, position]
         );
 
+        // Update cover if it's still the default
+        const [playlist] = await connection.execute(
+          'SELECT cover_url FROM playlists WHERE id = ?',
+          [playlistId]
+        );
+
+        if (playlist[0].cover_url === 'default' && track.thumbnail) {
+          await connection.execute(
+            'UPDATE playlists SET cover_url = ? WHERE id = ?',
+            [track.thumbnail, playlistId]
+          );
+        }
+
         console.log(`✅ Added track ${videoId} to playlist ${playlistId}`);
 
         return this.findById(playlistId);
@@ -227,6 +240,19 @@ class Playlist {
            SET pt1.position = pt2.new_position`,
           [playlistId]
         );
+
+        // Check if playlist is now empty and reset to default cover
+        const [trackCount] = await connection.execute(
+          'SELECT COUNT(*) as count FROM playlist_tracks WHERE playlist_id = ?',
+          [playlistId]
+        );
+
+        if (trackCount[0].count === 0) {
+          await connection.execute(
+            'UPDATE playlists SET cover_url = ? WHERE id = ?',
+            ['default', playlistId]
+          );
+        }
 
         console.log(`✅ Removed track ${videoId} from playlist ${playlistId}`);
 
