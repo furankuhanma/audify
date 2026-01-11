@@ -6,29 +6,51 @@ import Search from './pages/Search';
 import Library from './pages/Library';
 import PlaylistDetail from './pages/PlaylistDetail';
 import AIChat from './pages/AIChat';
+import AuthScreen from './pages/AuthScreen';
+import ProtectedRoute from './components/ProtectedRoute'; // ✅ NEW
 import { PlayerProvider } from './context/PlayerContext';
 import { LibraryProvider } from './context/LibraryContext';
+import { AuthProvider } from './context/AuthContext';
 
 const App: React.FC = () => {
   return (
-    <LibraryProvider>
-      <PlayerProvider>
-        <Router>
-          <Routes>
-            {/* AI Chat - Separate full-screen route */}
-            <Route path="/ai-chat" element={<AIChat />} />
-            
-            {/* Main app with Layout */}
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="search" element={<Search />} />
-              <Route path="library" element={<Library />} />
-              <Route path="playlist/:id" element={<PlaylistDetail />} />
-            </Route>
-          </Routes>
-        </Router>
-      </PlayerProvider>
-    </LibraryProvider>
+    <AuthProvider>
+      <LibraryProvider>
+        <PlayerProvider>
+          <Router>
+            <Routes>
+              {/* Public: Auth screen */}
+              <Route path="/auth" element={<AuthScreen />} />
+              
+              {/* ✅ Protected: AI Chat */}
+              <Route 
+                path="/ai-chat" 
+                element={
+                  <ProtectedRoute>
+                    <AIChat />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* ✅ Protected: Main app with Layout */}
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Home />} />
+                <Route path="search" element={<Search />} />
+                <Route path="library" element={<Library />} />
+                <Route path="playlist/:id" element={<PlaylistDetail />} />
+              </Route>
+            </Routes>
+          </Router>
+        </PlayerProvider>
+      </LibraryProvider>
+    </AuthProvider>
   );
 };
 

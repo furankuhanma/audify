@@ -3,7 +3,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Track, Playlist } from '../types/types';
 
-
 console.log(import.meta.env.VITE_BACKEND_URL)
 // Backend base URL
 const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:3001';
@@ -21,6 +20,13 @@ const apiClient: AxiosInstance = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     console.log(`🌐 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    
+    // ✅ NEW: Add auth token to requests if available
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     return config;
   },
   (error) => {
@@ -37,9 +43,157 @@ apiClient.interceptors.response.use(
   },
   (error: AxiosError) => {
     console.error('❌ Response Error:', error.response?.data || error.message);
+    
+    // ✅ NEW: Handle 401 Unauthorized - redirect to login
+    if (error.response?.status === 401) {
+      console.warn('⚠️ Unauthorized - clearing auth token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      // Could trigger a redirect to login here
+    }
+    
     return Promise.reject(error);
   }
 );
+
+// ============================================
+// ✅ NEW: AUTHENTICATION API
+// ============================================
+
+export const authAPI = {
+  /**
+   * Register a new user
+   */
+  register: async (username: string, password: string) => {
+    try {
+      const response = await apiClient.post('/auth/register', {
+        username,
+        password,
+      });
+      
+      // Save token and user to localStorage
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Register failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Login user
+   */
+  login: async (username: string, password: string) => {
+    try {
+      const response = await apiClient.post('/auth/login', {
+        username,
+        password,
+      });
+      
+      // Save token and user to localStorage
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Logout user
+   */
+  logout: async () => {
+    try {
+      await apiClient.post('/auth/logout');
+      
+      // Clear localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      
+      console.log('✅ Logged out successfully');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Clear localStorage even if request fails
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      throw error;
+    }
+  },
+
+  /**
+   * Get current user info
+   */
+  getCurrentUser: async () => {
+    try {
+      const response = await apiClient.get('/auth/me');
+      return response.data.user;
+    } catch (error) {
+      console.error('Get current user failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Change password
+   */
+  changePassword: async (currentPassword: string, newPassword: string) => {
+    try {
+      const response = await apiClient.post('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Change password failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Check if username is available
+   */
+  checkUsername: async (username: string): Promise<boolean> => {
+    try {
+      const response = await apiClient.get(`/auth/check-username/${username}`);
+      return response.data.available;
+    } catch (error) {
+      console.error('Check username failed:', error);
+      return false;
+    }
+  },
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated: (): boolean => {
+    const token = localStorage.getItem('auth_token');
+    const user = localStorage.getItem('user');
+    return !!(token && user);
+  },
+
+  /**
+   * Get stored user from localStorage
+   */
+  getStoredUser: () => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+};
 
 // ============================================
 // SEARCH API
@@ -411,6 +565,7 @@ export const serverAPI = {
 
 // Export everything as default
 export default {
+  auth: authAPI,        // ✅ NEW
   search: searchAPI,
   stream: streamAPI,
   ai: aiAPI,
