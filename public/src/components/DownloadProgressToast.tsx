@@ -36,7 +36,7 @@ const DownloadProgressToast: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-24 md:bottom-28 right-4 z-40 space-y-2 max-w-sm w-full">
+    <div className="fixed bottom-24 md:bottom-28 left-1/2 -translate-x-1/2 z-40 space-y-2 max-w-[90%] sm:max-w-sm w-full px-4">
       {displayedDownloads.map(download => {
         // Find track info (we'll need to pass it through download queue in context)
         const isCompleted = download.status === 'completed';

@@ -50,7 +50,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
         <form onSubmit={handleCreate} className="space-y-6">
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4 p-4 bg-zinc-800/50 rounded-xl hover:bg-zinc-800 transition cursor-pointer group border border-transparent hover:border-zinc-700">
-              <div className="bg-[#1DB954] text-black p-3 rounded-lg">
+              <div className="bg-blue-500 text-black p-3 rounded-lg">
                 <Music size={24} />
               </div>
               <div className="flex-1">
@@ -66,16 +66,6 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 p-4 bg-zinc-800/50 rounded-xl opacity-50 cursor-not-allowed">
-              <div className="bg-zinc-700 text-zinc-400 p-3 rounded-lg">
-                <Disc size={24} />
-              </div>
-              <div className="flex-1">
-                <p className="font-bold">Create Album</p>
-                <p className="text-xs text-zinc-400 mt-1">Upload multiple songs together</p>
-              </div>
-              <span className="text-[10px] bg-zinc-700 px-2 py-0.5 rounded text-zinc-300">COMING SOON</span>
-            </div>
           </div>
 
           <div className="pt-4 flex gap-3">
@@ -88,7 +78,7 @@ const CreateModal: React.FC<CreateModalProps> = ({ isOpen, onClose }) => {
             </button>
             <button 
               type="submit"
-              className="flex-1 bg-[#1DB954] text-black py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition shadow-lg"
+              className="flex-1 bg-blue-500 text-black py-3 rounded-full font-bold hover:scale-105 active:scale-95 transition shadow-lg"
             >
               Create Playlist
             </button>

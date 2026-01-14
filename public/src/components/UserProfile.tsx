@@ -27,22 +27,28 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+
 
   // Default values if user is not authenticated
   const username = user?.username || 'Guest User';
   const userAvatar = user?.avatar;
 
   return (
-    <div className="fixed inset-0 z-[100] md:hidden">
+   <div className="fixed inset-0 z-[100] md:hidden pointer-events-none">
       {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
-        onClick={onClose}
-      />
+  <div
+    className={`absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300
+      ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0'}`}
+    onClick={onClose}
+  />
       
       {/* Menu Panel - Slide from right */}
-      <div className="absolute right-0 top-0 bottom-0 w-[85%] max-w-sm bg-zinc-900 animate-in slide-in-from-right duration-300 overflow-y-auto">
+<div
+  className={`absolute left-0 top-0 bottom-0 w-[85%] max-w-sm bg-zinc-900 overflow-y-auto
+              transform transition-transform duration-500 ease-in-out
+              ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+>
+
         {/* Header */}
         <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">Account</h2>
@@ -58,7 +64,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
         <div className="p-6 border-b border-zinc-800">
           <div className="flex items-center gap-4 mb-4">
             {/* Avatar */}
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1DB954] to-emerald-700 flex items-center justify-center text-black font-bold text-2xl overflow-hidden">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-black font-bold text-2xl overflow-hidden">
               {userAvatar ? (
                 <img src={userAvatar} alt={username} className="w-full h-full object-cover" />
               ) : (
@@ -144,7 +150,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
 
         {/* Footer Info */}
         <div className="p-6 pt-2 text-center">
-          <p className="text-xs text-zinc-500 mb-2">VibeStream v1.0.0</p>
+          <p className="text-xs text-zinc-500 mb-2">Audify v1.0.0</p>
           <div className="flex items-center justify-center gap-4 text-xs text-zinc-500">
             <button className="hover:text-white transition">Privacy Policy</button>
             <span>•</span>

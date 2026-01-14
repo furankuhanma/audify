@@ -79,7 +79,7 @@ const Player = () => {
   }
 
   return (
-    <div className="fixed bottom-[64px] md:bottom-0 left-0 right-0 bg-black md:bg-zinc-900 border-t border-zinc-800 px-4 py-2 md:h-24 flex items-center justify-between z-40">
+    <div className="fixed bottom-[64px] md:bottom-0 left-0 right-0 bg-blue-900 md:bg-zinc-900 border-t border-zinc-800 px-4 py-2 md:h-24 flex items-center justify-between z-40">
       {/* Track Info */}
       <div 
         className="flex items-center gap-4 flex-1 md:flex-initial cursor-pointer"

@@ -9,6 +9,7 @@ import { useDownloads } from '../context/DownloadContext';
 import { searchAPI } from '../services/api';
 import TrackOptionsMenu from '../components/TrackOptionsMenu';
 import AddToPlaylistModal from '../components/AddToPlayListModal';
+import { WifiOff } from 'lucide-react';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -23,7 +24,7 @@ const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist }) => {
     >
       <div className="relative mb-4 aspect-square shadow-lg overflow-hidden rounded-md">
         <img src={playlist.coverUrl} alt={playlist.name} className="object-cover w-full h-full" />
-        <button className="absolute bottom-2 right-2 bg-[#1DB954] p-3 rounded-full shadow-2xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition duration-300">
+        <button className="absolute bottom-2 right-2 bg-blue-400 p-3 rounded-full shadow-2xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition duration-300">
           <Play size={20} className="text-black fill-current" />
         </button>
       </div>
@@ -78,7 +79,7 @@ const HistoryCard: React.FC<HistoryCardProps> = ({
         <div className="relative mb-3 aspect-square shadow-md overflow-hidden rounded-lg">
           <img src={track.coverUrl} alt={track.title} className="object-cover w-full h-full transition duration-500 group-hover:scale-105" />
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-            <button className="bg-[#1DB954] p-3 rounded-full shadow-2xl opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition duration-300">
+            <button className="bg-blue-400 p-3 rounded-full shadow-2xl opacity-0 scale-90 group-hover:opacity-100 group-hover:scale-100 transition duration-300">
               <Play size={20} className="text-black fill-current" />
             </button>
           </div>
@@ -107,7 +108,9 @@ const Home: React.FC = () => {
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
 
-  // Load trending music on mount
+  const [showRetry, setShowRetry] = useState(false);
+
+  // Load trending music on mountx
   useEffect(() => {
     loadTrending();
   }, []);
@@ -118,20 +121,40 @@ const Home: React.FC = () => {
   const loadTrending = async () => {
     setIsLoadingTrending(true);
     setTrendingError(null);
+    setShowRetry(false); // hide retry immediately
+
+    const errorDelay = 5000; // 5 seconds
+    const startTime = Date.now();
 
     try {
       console.log('🔥 Loading trending music...');
       const tracks = await searchAPI.getTrending();
+
+      // ✅ SUCCESS → return immediately
       setTrendingTracks(tracks);
       console.log(`✅ Loaded ${tracks.length} trending tracks`);
+      setIsLoadingTrending(false);
+
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to load trending';
+      const errorMsg =
+        error.response?.data?.message ||
+        error.message ||
+        'Failed to load trending';
+
       console.error('❌ Failed to load trending:', errorMsg);
       setTrendingError(errorMsg);
-    } finally {
-      setIsLoadingTrending(false);
+
+      // ❌ ERROR → enforce minimum wait before retry appears
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(errorDelay - elapsed, 0);
+
+      setTimeout(() => {
+        setIsLoadingTrending(false); // stop spinner
+        setShowRetry(true);          // now allow retry
+      }, remaining);
     }
   };
+
 
   /**
    * Handle playlist click from quick grid
@@ -171,12 +194,36 @@ const Home: React.FC = () => {
     }
   };
 
+  const categories = ["All", "Music", "Podcasts"]
+  const blueShades = [
+    'bg-blue-700',
+    'bg-blue-600',
+    'bg-blue-500',
+    'bg-blue-700',
+    'bg-blue-800',
+    'bg-blue-900']
   return (
     <div className="space-y-10 animate-in fade-in duration-500">
       {/* 1. Greeting & Quick Grid */}
       <header>
-        <h1 className="text-2xl md:text-4xl font-black mb-6 tracking-tight">{greeting}</h1>
+        <div className="flex overflow-x-auto gap-2 pb-2 no-scrollbar"> {/* Parent container wraps the map */}
+          {categories.map((c, index) => (
+            <div key={c} className={`flex-shrink-0 p-2 px-4 rounded-2xl ${blueShades[index % blueShades.length]}`}>
+              <p className="text-sm font-medium text-white">{c}</p>
+            </div>
+          ))}
+        </div>
 
+
+
+
+
+
+
+
+        {/*Make some playlist recommendations for this section */}
+
+        <h1 className="text-2xl md:text-4xl font-black mb-6 tracking-tight">{greeting}</h1>
         {playlistsLoading ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -193,12 +240,23 @@ const Home: React.FC = () => {
               >
                 <img src={playlist.coverUrl} alt="" className="w-14 md:w-20 h-full object-cover shadow-2xl" />
                 <span className="font-bold text-xs md:text-base pr-4 line-clamp-1">{playlist.name}</span>
-                <button className="ml-auto mr-4 bg-[#1DB954] p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 shadow-xl hidden md:block">
+                <button className="ml-auto mr-4 bg-blue-400 p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100 shadow-xl hidden md:block">
                   <Play size={18} className="text-black fill-current" />
                 </button>
               </div>
             ))}
           </div>
+
+
+
+
+
+
+
+
+
+
+
         )}
       </header>
 
@@ -228,12 +286,12 @@ const Home: React.FC = () => {
           </div>
         )}
 
-        {trendingError && (
-          <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-center">
-            <p className="text-red-400">❌ {trendingError}</p>
+        {!isLoadingTrending && trendingError && showRetry && (
+          <div className="rounded-lg p-4 text-center">
+            <WifiOff className="mx-auto mb-2 text-red-400" size={32} />
             <button
               onClick={loadTrending}
-              className="mt-2 text-sm text-[#1DB954] hover:underline"
+              className="rounded-2xl font-bold bg-blue-600 p-2 pl-5 pr-5 mt-2 text-sm text-black hover:underline"
             >
               Try again
             </button>
@@ -241,7 +299,7 @@ const Home: React.FC = () => {
         )}
 
         {!isLoadingTrending && !trendingError && trendingTracks.length > 0 && (
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth">
             {trendingTracks.slice(0, 10).map(track => (
               <HistoryCard
                 key={track.id}
@@ -285,7 +343,7 @@ const Home: React.FC = () => {
         ) : (
           <div className="text-center py-10">
             <p className="text-zinc-400 mb-4">You haven't created any playlists yet</p>
-            <button className="bg-[#1DB954] text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">
+            <button className="bg-blue-600 text-black px-6 py-3 rounded-full font-bold hover:scale-105 transition">
               Create Your First Playlist
             </button>
           </div>
