@@ -19,6 +19,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  
   // Load playlists from backend on mount
   useEffect(() => {
     loadPlaylists();
@@ -118,28 +119,34 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   /**
    * Delete a playlist
    */
-  const deletePlaylist = useCallback(async (id: string) => {
-    setIsLoading(true);
-    setError(null);
+// Inside LibraryContext.tsx
+/**
+ * Delete a playlist
+ */
+const deletePlaylist = useCallback(async (playlistId: string) => {
+  setIsLoading(true);
+  setError(null);
 
-    try {
-      console.log(`🗑️ Deleting playlist: ${id}`);
-      
-      await playlistAPI.delete(id);
+  try {
+    console.log(`🗑️ Deleting playlist: ${playlistId}`);
+    
+    // ✅ Use the existing service instead of raw fetch
+    // This ensures headers and base URLs are handled by your axios interceptor
+    await playlistAPI.delete(playlistId);
 
-      // Remove from local state
-      setPlaylists((prev) => prev.filter((p) => p.id !== id));
-      
-      console.log('✅ Playlist deleted');
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.message || err.message || 'Failed to delete playlist';
-      console.error('❌ Failed to delete playlist:', errorMsg);
-      setError(errorMsg);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    // Update local state immediately so the card disappears
+    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+    
+    console.log('✅ Playlist deleted from database and local state');
+  } catch (err: any) {
+    const errorMsg = err.response?.data?.message || err.message || 'Failed to delete playlist';
+    console.error('❌ Failed to delete playlist:', errorMsg);
+    setError(errorMsg);
+    throw err; 
+  } finally {
+    setIsLoading(false);
+  }
+}, []);
 
   return (
     <LibraryContext.Provider 

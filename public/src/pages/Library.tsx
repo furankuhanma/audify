@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Music, Mic2, Disc, Play, RefreshCw, AlertCircle } from 'lucide-react';
 import { FaHeart } from 'react-icons/fa';
 import { useLibrary } from '../context/LibraryContext';
 import { useNavigate } from 'react-router-dom';
 import { useLikes } from '../context/LikeContext';
+import { MoreVertical, Trash2 } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext'; // ✅ Added Player Context
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal'
+
 
 const Library: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'playlists' | 'artists' | 'liked songs'>('liked songs');
@@ -13,6 +16,36 @@ const Library: React.FC = () => {
   const { playTrack, currentTrack } = usePlayer(); // ✅ Consume Player
   const navigate = useNavigate();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [playlistToDelete, setPlaylistToDelete] = useState<string | null>(null);
+  const { deletePlaylist } = useLibrary(); // From LibraryContext
+
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+
+
+  const handleRemovePlaylist = (e: React.MouseEvent, playlistId: string) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    setPlaylistToDelete(playlistId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (playlistToDelete) {
+      try {
+        await deletePlaylist(playlistToDelete);
+        // Optional: showToast("Playlist removed");
+      } catch (err) {
+        console.error("Failed to delete:", err);
+      }
+    }
+  };
 
   const tabs = [
     { id: 'liked songs', name: 'Liked songs', icon: <FaHeart size={18} /> },
@@ -20,23 +53,23 @@ const Library: React.FC = () => {
     { id: 'artists', name: 'Artists', icon: <Mic2 size={18} /> }
   ];
 
-const { refreshLikes } = useLikes(); // Ensure your LikeContext exports a refresh function
+  const { refreshLikes } = useLikes(); // Ensure your LikeContext exports a refresh function
 
-const handleRefresh = async () => {
-  setIsRefreshing(true);
-  try {
-    if (activeTab === 'playlists') {
-      await refreshPlaylists();
-    } else if (activeTab === 'liked songs') {
-      // If your LikeContext has a refresh function, call it here
-      if (refreshLikes) await refreshLikes(); 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      if (activeTab === 'playlists') {
+        await refreshPlaylists();
+      } else if (activeTab === 'liked songs') {
+        // If your LikeContext has a refresh function, call it here
+        if (refreshLikes) await refreshLikes();
+      }
+    } catch (err) {
+      console.error("Refresh failed", err);
+    } finally {
+      setIsRefreshing(false);
     }
-  } catch (err) {
-    console.error("Refresh failed", err);
-  } finally {
-    setIsRefreshing(false);
-  }
-};
+  };
 
   /**
    * RENDER: Liked Songs Tab
@@ -156,18 +189,52 @@ const handleRefresh = async () => {
           <div
             key={playlist.id}
             onClick={() => navigate(`/playlist/${playlist.id}`)}
-            className="bg-zinc-900 bg-opacity-40 p-4 rounded-lg hover:bg-zinc-800 transition group cursor-pointer"
+            className="bg-zinc-900 bg-opacity-40 p-4 rounded-lg hover:bg-zinc-800 transition cursor-pointer relative"
           >
-            <div className="relative mb-4 aspect-square shadow-lg overflow-hidden rounded-md">
-              <img
-                src={playlist.coverUrl}
-                alt={playlist.name}
-                className="object-cover w-full h-full transition duration-300 group-hover:scale-105"
-              />
-              <button className="absolute bottom-2 right-2 bg-blue-400 p-3 rounded-full shadow-2xl opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition duration-300">
+            <div className="relative mb-4 aspect-square shadow-lg"> {/* Removed overflow-hidden here */}
+              {/* Wrap only the image in overflow-hidden */}
+              <div className="w-full h-full overflow-hidden rounded-md">
+                <img
+                  src={playlist.coverUrl}
+                  alt={playlist.name}
+                  className="object-cover w-full h-full transition duration-300 hover:scale-105"
+                />
+              </div>
+
+              {/* 3 DOTS BUTTON (Always Visible) */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpenMenuId(openMenuId === playlist.id ? null : playlist.id);
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-black/60 rounded-full text-white z-20 hover:bg-black transition-colors"
+              >
+                <MoreVertical size={18} />
+              </button>
+
+              {/* DROPDOWN MENU */}
+              {openMenuId === playlist.id && (
+                <div
+                  className="absolute top-10 right-0 w-40 bg-zinc-900 border border-zinc-700 rounded-md shadow-2xl z-[100] py-1 animate-in fade-in zoom-in-95 duration-100"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={(e) => handleRemovePlaylist(e, playlist.id)}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-xs text-red-400 hover:bg-zinc-800 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    <span>Remove Playlist</span>
+                  </button>
+                </div>
+              )}
+
+              {/* PLAY BUTTON: Removed opacity-0, translate-y-2, and group-hover classes */}
+
+              <button className="absolute bottom-2 right-2 bg-blue-400 p-3 rounded-full shadow-2xl z-20">
                 <Play size={20} className="text-black fill-current" />
               </button>
             </div>
+
             <h3 className="font-bold text-sm truncate mb-1">{playlist.name}</h3>
             <p className="text-xs text-zinc-500">Playlist • {playlist.trackCount || 0} songs</p>
           </div>
@@ -206,13 +273,13 @@ const handleRefresh = async () => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => 
+            onClick={() =>
               setActiveTab(tab.id as any)
-            
+
             }
             className={`flex items-center gap-1 px-4 py-3 text-xs font-bold transition ${activeTab === tab.id
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-zinc-400 hover:text-white'
+              ? 'text-blue-400 border-b-2 border-blue-400'
+              : 'text-zinc-400 hover:text-white'
               }`}
           >
             {tab.icon}
@@ -227,6 +294,14 @@ const handleRefresh = async () => {
         {activeTab === 'playlists' && renderPlaylistsContent()}
         {activeTab === 'artists' && renderComingSoonContent()}
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Remove from Library?"
+        message="This will remove the playlist from your library. This action cannot be undone."
+      />
     </div>
   );
 };
