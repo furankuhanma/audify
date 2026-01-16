@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 const database = require('./config/database');
+const trackRoutes = require('./routes/track');
 
 // Load environment variables
 dotenv.config();
@@ -28,14 +29,16 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/tracks', trackRoutes);
+
 // Serve static audio files from storage directory
 const audioDir = process.env.AUDIO_STORAGE_DIR || '/var/www/vibestream/audio';
 app.use('/audio', express.static(audioDir));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'VibeStream Backend is running',
     timestamp: new Date().toISOString()
   });
@@ -46,7 +49,7 @@ app.get('/api/config/test', async (req, res) => {
   const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
   const hasYouTubeKey = !!process.env.YOUTUBE_API_KEY;
   const hasDBConfig = !!(process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME);
-  
+
   // Test database connection
   let dbConnected = false;
   if (hasDBConfig) {
@@ -56,14 +59,14 @@ app.get('/api/config/test', async (req, res) => {
       console.error('Database test failed:', error.message);
     }
   }
-  
+
   res.json({
     openai_configured: hasOpenAIKey,
     youtube_configured: hasYouTubeKey,
     database_configured: hasDBConfig,
     database_connected: dbConnected,
     message: hasOpenAIKey && hasYouTubeKey && dbConnected
-      ? 'All services configured and connected ✅' 
+      ? 'All services configured and connected ✅'
       : 'Some services missing or disconnected ❌'
   });
 });
@@ -79,9 +82,9 @@ app.get('/api/stats', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get statistics',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -122,9 +125,9 @@ app.use((req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
-    message: err.message 
+    message: err.message
   });
 });
 
@@ -134,13 +137,42 @@ async function initializeDatabase() {
     // Ensure database exists
     console.log('🔌 Initializing database...');
     await database.ensureDatabase();
-    
+
     // Connect to database
     await database.connect();
-    
+
     // Initialize existing tables
     await database.initializeTables();
-    
+
+    // ✅ NEW: Update tracks table for Hybrid Storage
+    console.log('🎵 Updating tracks table for hybrid storage...');
+    try {
+      await database.query(`
+    ALTER TABLE tracks 
+    ADD COLUMN local_path VARCHAR(255) DEFAULT NULL,
+    ADD COLUMN is_downloaded BOOLEAN DEFAULT 0,
+    ADD COLUMN file_size_mb FLOAT DEFAULT 0,
+    ADD COLUMN mime_type VARCHAR(50) DEFAULT 'audio/mpeg'
+  `);
+      console.log('✅ Tracks table updated');
+    } catch (error) {
+      if (!error.message.includes('Duplicate column name')) {
+        console.warn('⚠️ Could not update tracks table:', error.message);
+      }
+    }
+
+    // ✅ NEW: Create liked_tracks junction table
+    console.log('❤️ Creating liked_tracks table...');
+    await database.query(`
+  CREATE TABLE IF NOT EXISTS liked_tracks (
+    user_id INT NOT NULL,
+    track_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, track_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`);
     // ✅ NEW: Create users table
     console.log('👤 Creating users table...');
     await database.query(`
@@ -156,7 +188,7 @@ async function initializeDatabase() {
         INDEX idx_active (is_active)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
-    
+
     // ✅ NEW: Update playlists table to link with users (if column doesn't exist)
     console.log('🔗 Updating playlists table...');
     try {
@@ -173,23 +205,6 @@ async function initializeDatabase() {
         console.warn('⚠️ Could not add user_id to playlists:', error.message);
       }
     }
-    
-    // ✅ NEW: Create user_sessions table
-    console.log('🔐 Creating user_sessions table...');
-    await database.query(`
-      CREATE TABLE IF NOT EXISTS user_sessions (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        session_token VARCHAR(255) UNIQUE NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        INDEX idx_session_token (session_token),
-        INDEX idx_user_sessions (user_id)
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-    `);
-    
-    console.log('✅ Database ready with authentication tables');
 
   } catch (error) {
     console.error('❌ Failed to initialize database:', error.message);
@@ -222,6 +237,8 @@ async function startServer() {
       console.log('    - GET  /api/search/trending');
       console.log('  🎵 Music:');
       console.log('    - GET  /api/stream/:videoId');
+      console.log('    - GET  /api/tracks/liked'); // Added this
+      console.log('    - POST /api/tracks/like');  // Added this
       console.log('  🤖 AI:');
       console.log('    - POST /api/ai/chat');
       console.log('    - POST /api/ai/recommend');

@@ -12,20 +12,28 @@ class Playlist {
       const {
         name,
         description = '',
-        coverUrl = 'default' // Default to gray placeholder
+        coverUrl = 'default',
+        userID
       } = playlistData;
 
+      // ✅ Validate userID is provided
+      if (!userID) {
+        throw new Error('User ID is required');
+      }
+
       const result = await database.query(
-        `INSERT INTO playlists (name, description, cover_url)
-         VALUES (?, ?, ?)`,
-        [name, description, coverUrl]
+        `INSERT INTO playlists (name, description, cover_url, user_id)
+         VALUES (?, ?, ?, ?)`,
+        [name, description, coverUrl, userID]
       );
 
       return {
-        id: result.insertId,
+        id: `p${result.insertId}`,
+        dbId: result.insertId,
         name,
         description,
         coverUrl,
+        userID,
         tracks: [],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -39,13 +47,15 @@ class Playlist {
   /**
    * Find playlist by ID
    * @param {number} id
+   * @param {number} userID
    * @returns {Promise<Object|null>}
    */
-  static async findById(id) {
+  static async findById(id, userID) {
     try {
+      // ✅ Fixed SQL syntax and added userID parameter
       const rows = await database.query(
-        'SELECT * FROM playlists WHERE id = ?',
-        [id]
+        'SELECT * FROM playlists WHERE id = ? AND user_id = ?',
+        [id, userID]
       );
 
       if (rows.length === 0) {
@@ -65,13 +75,16 @@ class Playlist {
   }
 
   /**
-   * Get all playlists (without tracks)
+   * Get all playlists for a user (without tracks)
+   * @param {number} userID
    * @returns {Promise<Array>}
    */
-  static async getAll() {
+  static async getAll(userID) {
     try {
+      // ✅ Fixed: Added userID parameter
       const rows = await database.query(
-        'SELECT * FROM playlists ORDER BY updated_at DESC'
+        'SELECT * FROM playlists WHERE user_id = ? ORDER BY updated_at DESC',
+        [userID]
       );
 
       // Get track counts for each playlist
@@ -93,10 +106,11 @@ class Playlist {
   /**
    * Update playlist information
    * @param {number} id
+   * @param {number} userID
    * @param {Object} updates
    * @returns {Promise<Object>}
    */
-  static async update(id, updates) {
+  static async update(id, userID, updates) {
     try {
       const { name, description, coverUrl } = updates;
       const fields = [];
@@ -116,17 +130,26 @@ class Playlist {
       }
 
       if (fields.length === 0) {
-        return this.findById(id);
+        return this.findById(id, userID);
       }
 
-      values.push(id);
+      // ✅ Add updated_at field
+      fields.push('updated_at = NOW()');
+      
+      // ✅ Add WHERE conditions for both id and user_id
+      values.push(id, userID);
 
-      await database.query(
-        `UPDATE playlists SET ${fields.join(', ')} WHERE id = ?`,
+      const result = await database.query(
+        `UPDATE playlists SET ${fields.join(', ')} WHERE id = ? AND user_id = ?`,
         values
       );
 
-      return this.findById(id);
+      // ✅ Check if playlist was found and updated
+      if (result.affectedRows === 0) {
+        return null;
+      }
+
+      return this.findById(id, userID);
     } catch (error) {
       console.error('Error updating playlist:', error);
       throw error;
@@ -136,13 +159,15 @@ class Playlist {
   /**
    * Delete playlist
    * @param {number} id
+   * @param {number} userID
    * @returns {Promise<boolean>}
    */
-  static async delete(id) {
+  static async delete(id, userID) {
     try {
+      // ✅ Added userID check to ensure user can only delete their own playlists
       const result = await database.query(
-        'DELETE FROM playlists WHERE id = ?',
-        [id]
+        'DELETE FROM playlists WHERE id = ? AND user_id = ?',
+        [id, userID]
       );
 
       return result.affectedRows > 0;
@@ -156,11 +181,22 @@ class Playlist {
    * Add track to playlist
    * @param {number} playlistId
    * @param {string} videoId - YouTube video ID
+   * @param {number} userID
    * @returns {Promise<Object>}
    */
-  static async addTrack(playlistId, videoId) {
+  static async addTrack(playlistId, videoId, userID) {
     try {
       return await database.transaction(async (connection) => {
+        // ✅ Verify playlist belongs to user
+        const [playlistCheck] = await connection.execute(
+          'SELECT id FROM playlists WHERE id = ? AND user_id = ?',
+          [playlistId, userID]
+        );
+
+        if (playlistCheck.length === 0) {
+          throw new Error('Playlist not found or access denied');
+        }
+
         // Get or create track
         let track = await Track.findByVideoId(videoId);
         
@@ -192,14 +228,14 @@ class Playlist {
 
         if (playlist[0].cover_url === 'default' && track.thumbnail) {
           await connection.execute(
-            'UPDATE playlists SET cover_url = ? WHERE id = ?',
+            'UPDATE playlists SET cover_url = ?, updated_at = NOW() WHERE id = ?',
             [track.thumbnail, playlistId]
           );
         }
 
         console.log(`✅ Added track ${videoId} to playlist ${playlistId}`);
 
-        return this.findById(playlistId);
+        return this.findById(playlistId, userID);
       });
     } catch (error) {
       console.error('Error adding track to playlist:', error);
@@ -211,11 +247,22 @@ class Playlist {
    * Remove track from playlist
    * @param {number} playlistId
    * @param {string} videoId
+   * @param {number} userID
    * @returns {Promise<boolean>}
    */
-  static async removeTrack(playlistId, videoId) {
+  static async removeTrack(playlistId, videoId, userID) {
     try {
       return await database.transaction(async (connection) => {
+        // ✅ Verify playlist belongs to user
+        const [playlistCheck] = await connection.execute(
+          'SELECT id FROM playlists WHERE id = ? AND user_id = ?',
+          [playlistId, userID]
+        );
+
+        if (playlistCheck.length === 0) {
+          throw new Error('Playlist not found or access denied');
+        }
+
         // Get track database ID
         const track = await Track.findByVideoId(videoId);
         
@@ -249,7 +296,7 @@ class Playlist {
 
         if (trackCount[0].count === 0) {
           await connection.execute(
-            'UPDATE playlists SET cover_url = ? WHERE id = ?',
+            'UPDATE playlists SET cover_url = ?, updated_at = NOW() WHERE id = ?',
             ['default', playlistId]
           );
         }
@@ -268,11 +315,22 @@ class Playlist {
    * Reorder tracks in playlist
    * @param {number} playlistId
    * @param {Array} trackOrder - Array of video IDs in desired order
+   * @param {number} userID
    * @returns {Promise<Object>}
    */
-  static async reorderTracks(playlistId, trackOrder) {
+  static async reorderTracks(playlistId, trackOrder, userID) {
     try {
       return await database.transaction(async (connection) => {
+        // ✅ Verify playlist belongs to user
+        const [playlistCheck] = await connection.execute(
+          'SELECT id FROM playlists WHERE id = ? AND user_id = ?',
+          [playlistId, userID]
+        );
+
+        if (playlistCheck.length === 0) {
+          throw new Error('Playlist not found or access denied');
+        }
+
         for (let i = 0; i < trackOrder.length; i++) {
           const videoId = trackOrder[i];
           const track = await Track.findByVideoId(videoId);
@@ -285,7 +343,13 @@ class Playlist {
           }
         }
 
-        return this.findById(playlistId);
+        // ✅ Update playlist updated_at timestamp
+        await connection.execute(
+          'UPDATE playlists SET updated_at = NOW() WHERE id = ?',
+          [playlistId]
+        );
+
+        return this.findById(playlistId, userID);
       });
     } catch (error) {
       console.error('Error reordering tracks:', error);
@@ -339,10 +403,18 @@ class Playlist {
    * Check if track exists in playlist
    * @param {number} playlistId
    * @param {string} videoId
+   * @param {number} userID
    * @returns {Promise<boolean>}
    */
-  static async hasTrack(playlistId, videoId) {
+  static async hasTrack(playlistId, videoId, userID) {
     try {
+      // ✅ Verify playlist belongs to user
+      const playlist = await this.findById(playlistId, userID);
+      
+      if (!playlist) {
+        return false;
+      }
+
       const track = await Track.findByVideoId(videoId);
       
       if (!track) {
@@ -362,12 +434,16 @@ class Playlist {
   }
 
   /**
-   * Get total playlist count
+   * Get total playlist count for a user
+   * @param {number} userID
    * @returns {Promise<number>}
    */
-  static async count() {
+  static async count(userID) {
     try {
-      const rows = await database.query('SELECT COUNT(*) as count FROM playlists');
+      const rows = await database.query(
+        'SELECT COUNT(*) as count FROM playlists WHERE user_id = ?',
+        [userID]
+      );
       return rows[0].count;
     } catch (error) {
       console.error('Error counting playlists:', error);
@@ -378,18 +454,19 @@ class Playlist {
   /**
    * Get playlist statistics
    * @param {number} playlistId
+   * @param {number} userID
    * @returns {Promise<Object>}
    */
-  static async getStats(playlistId) {
+  static async getStats(playlistId, userID) {
     try {
-      const playlist = await this.findById(playlistId);
+      const playlist = await this.findById(playlistId, userID);
       
       if (!playlist) {
         return null;
       }
 
       // Calculate total duration
-      const [durationResult] = await database.query(
+      const durationResult = await database.query(
         `SELECT SUM(t.duration) as total_duration
          FROM tracks t
          INNER JOIN playlist_tracks pt ON t.id = pt.track_id

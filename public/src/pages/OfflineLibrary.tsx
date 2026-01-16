@@ -176,7 +176,7 @@ const OfflineLibrary: React.FC = () => {
       {/* Loading State */}
       {loading && (
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-[#1DB954]"></div>
+         <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-100 border-t-[#1D4ED8]"></div>
         </div>
       )}
 

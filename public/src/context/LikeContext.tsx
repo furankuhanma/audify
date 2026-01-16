@@ -1,127 +1,79 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { Track } from '../types/types';
 import { useAuth } from './AuthContext';
+import { trackAPI } from '../services/api'; 
 
 interface LikeContextType {
   likedTracks: Track[];
+  isLoading: boolean;
   isLiked: (trackId: string) => boolean;
-  toggleLike: (track: Track) => void;
+  toggleLike: (track: Track) => Promise<void>;
   getLikedCount: () => number;
-  clearLikes: () => void;
+  refreshLikes: () => Promise<void>;
 }
 
 const LikeContext = createContext<LikeContextType | undefined>(undefined);
 
-interface LikeProviderProps {
-  children: ReactNode;
-}
-
-export const LikeProvider: React.FC<LikeProviderProps> = ({ children }) => {
+export const LikeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [likedTracks, setLikedTracks] = useState<Track[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const { user } = useAuth();
 
-  // Load liked tracks from localStorage on mount
+const fetchLikedTracks = useCallback(async () => {
+  if (!user) return;
+  setIsLoading(true);
+  try {
+    const tracks = await trackAPI.getLikedTracks();
+    console.log('🎵 Setting Liked Tracks state:', tracks); // Add this log
+    setLikedTracks(tracks);
+  } catch (error) {
+    console.error('❌ Failed to fetch likes:', error);
+  } finally {
+    setIsLoading(false);
+  }
+}, [user]);
+
   useEffect(() => {
     if (user) {
-      loadLikedTracks();
+      fetchLikedTracks();
     } else {
-      // Clear likes if user logs out
       setLikedTracks([]);
     }
-  }, [user]);
+  }, [user, fetchLikedTracks]);
 
-  /**
-   * Load liked tracks from localStorage
-   */
-  const loadLikedTracks = () => {
-    try {
-      const storageKey = `vibestream_likes_${user?.id || 'guest'}`;
-      const stored = localStorage.getItem(storageKey);
-      
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setLikedTracks(parsed);
-        console.log(`✅ Loaded ${parsed.length} liked tracks`);
-      }
-    } catch (error) {
-      console.error('❌ Failed to load liked tracks:', error);
-    }
-  };
-
-  /**
-   * Save liked tracks to localStorage
-   */
-  const saveLikedTracks = (tracks: Track[]) => {
-    try {
-      const storageKey = `vibestream_likes_${user?.id || 'guest'}`;
-      localStorage.setItem(storageKey, JSON.stringify(tracks));
-      console.log(`💾 Saved ${tracks.length} liked tracks`);
-    } catch (error) {
-      console.error('❌ Failed to save liked tracks:', error);
-    }
-  };
-
-  /**
-   * Check if a track is liked
-   */
   const isLiked = (trackId: string): boolean => {
     return likedTracks.some(track => track.id === trackId);
   };
 
-  /**
-   * Toggle like status for a track
-   */
-  const toggleLike = (track: Track) => {
-    setLikedTracks(prevLikes => {
-      const isCurrentlyLiked = prevLikes.some(t => t.id === track.id);
-      
-      let newLikes: Track[];
-      
-      if (isCurrentlyLiked) {
-        // Unlike: Remove from array
-        newLikes = prevLikes.filter(t => t.id !== track.id);
-        console.log(`💔 Unliked: ${track.title}`);
+  const toggleLike = async (track: Track) => {
+    const wasLiked = isLiked(track.id);
+    
+    // Optimistic UI Update
+    setLikedTracks(prev => 
+      wasLiked ? prev.filter(t => t.id !== track.id) : [track, ...prev]
+    );
+
+    try {
+      if (wasLiked) {
+        await trackAPI.unlikeTrack(track.id);
       } else {
-        // Like: Add to array
-        newLikes = [...prevLikes, track];
-        console.log(`❤️ Liked: ${track.title}`);
+        await trackAPI.likeTrack(track);
       }
-      
-      // Save to localStorage
-      saveLikedTracks(newLikes);
-      
-      // TODO: Sync with backend API
-      // await likeAPI.toggleLike(track.id, !isCurrentlyLiked);
-      
-      return newLikes;
-    });
-  };
-
-  /**
-   * Get total count of liked tracks
-   */
-  const getLikedCount = (): number => {
-    return likedTracks.length;
-  };
-
-  /**
-   * Clear all liked tracks (for logout or reset)
-   */
-  const clearLikes = () => {
-    setLikedTracks([]);
-    const storageKey = `vibestream_likes_${user?.id || 'guest'}`;
-    localStorage.removeItem(storageKey);
-    console.log('🗑️ Cleared all liked tracks');
+    } catch (error) {
+      console.error('❌ Database sync failed, rolling back:', error);
+      fetchLikedTracks(); // Rollback to server state
+    }
   };
 
   return (
     <LikeContext.Provider
       value={{
         likedTracks,
+        isLoading,
         isLiked,
         toggleLike,
-        getLikedCount,
-        clearLikes,
+        getLikedCount: () => likedTracks.length,
+        refreshLikes: fetchLikedTracks,
       }}
     >
       {children}
@@ -129,13 +81,8 @@ export const LikeProvider: React.FC<LikeProviderProps> = ({ children }) => {
   );
 };
 
-/**
- * Hook to use like context
- */
 export const useLikes = () => {
   const context = useContext(LikeContext);
-  if (!context) {
-    throw new Error('useLikes must be used within LikeProvider');
-  }
+  if (!context) throw new Error('useLikes must be used within LikeProvider');
   return context;
 };

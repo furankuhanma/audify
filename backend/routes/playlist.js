@@ -2,16 +2,22 @@ const express = require('express');
 const router = express.Router();
 const Playlist = require('../models/Playlists');
 const Track = require('../models/Track');
+const { authenticateToken } = require('../middleware/auth');
+
+// 🔒 Apply authentication to ALL playlist routes
+router.use(authenticateToken);
 
 /**
  * GET /api/playlists
- * Get all playlists
+ * Get all playlists for current user
  */
 router.get('/', async (req, res) => {
   try {
-    console.log('📋 Fetching all playlists...');
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     
-    const playlists = await Playlist.getAll();
+    console.log(`📋 Fetching all playlists for user: ${req.user.username}`);
+    
+    const playlists = await Playlist.getAll(userID);
 
     res.json({
       playlists,
@@ -34,13 +40,14 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     
     // Remove 'p' prefix if it exists (for frontend compatibility)
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
 
-    console.log(`📋 Fetching playlist: ${playlistId}`);
+    console.log(`📋 Fetching playlist: ${playlistId} for user: ${req.user.username}`);
 
-    const playlist = await Playlist.findById(playlistId);
+    const playlist = await Playlist.findById(playlistId, userID);
 
     if (!playlist) {
       return res.status(404).json({
@@ -68,6 +75,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, description, coverUrl } = req.body;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
 
     if (!name || name.trim().length === 0) {
       return res.status(400).json({
@@ -76,12 +84,13 @@ router.post('/', async (req, res) => {
       });
     }
 
-    console.log(`➕ Creating playlist: "${name}"`);
+    console.log(`➕ Creating playlist: "${name}" for user: ${req.user.username}`);
 
     const playlist = await Playlist.create({
       name: name.trim(),
       description: description?.trim() || '',
-      coverUrl: coverUrl || `https://picsum.photos/seed/${Date.now()}/600/600`
+      coverUrl: coverUrl || `https://picsum.photos/seed/${Date.now()}/600/600`,
+      userID // ✅ Pass userID to model
     });
 
     res.status(201).json({
@@ -106,13 +115,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
     
     const { name, description, coverUrl } = req.body;
 
-    console.log(`✏️ Updating playlist: ${playlistId}`);
+    console.log(`✏️ Updating playlist: ${playlistId} for user: ${req.user.username}`);
 
-    const playlist = await Playlist.update(playlistId, {
+    const playlist = await Playlist.update(playlistId, userID, {
       name,
       description,
       coverUrl
@@ -145,11 +155,12 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
 
-    console.log(`🗑️ Deleting playlist: ${playlistId}`);
+    console.log(`🗑️ Deleting playlist: ${playlistId} for user: ${req.user.username}`);
 
-    const deleted = await Playlist.delete(playlistId);
+    const deleted = await Playlist.delete(playlistId, userID);
 
     if (!deleted) {
       return res.status(404).json({
@@ -179,6 +190,7 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/tracks', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
     
     const { videoId, trackData } = req.body;
@@ -200,7 +212,7 @@ router.post('/:id/tracks', async (req, res) => {
       });
     }
 
-    const playlist = await Playlist.addTrack(playlistId, videoId);
+    const playlist = await Playlist.addTrack(playlistId, videoId, userID);
 
     res.json({
       message: 'Track added to playlist',
@@ -223,11 +235,12 @@ router.post('/:id/tracks', async (req, res) => {
 router.delete('/:id/tracks/:videoId', async (req, res) => {
   try {
     const { id, videoId } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
 
     console.log(`➖ Removing track ${videoId} from playlist ${playlistId}`);
 
-    const removed = await Playlist.removeTrack(playlistId, videoId);
+    const removed = await Playlist.removeTrack(playlistId, videoId, userID);
 
     if (!removed) {
       return res.status(404).json({
@@ -257,6 +270,7 @@ router.delete('/:id/tracks/:videoId', async (req, res) => {
 router.put('/:id/tracks/reorder', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
     
     const { trackOrder } = req.body;
@@ -270,7 +284,7 @@ router.put('/:id/tracks/reorder', async (req, res) => {
 
     console.log(`🔄 Reordering ${trackOrder.length} tracks in playlist ${playlistId}`);
 
-    const playlist = await Playlist.reorderTracks(playlistId, trackOrder);
+    const playlist = await Playlist.reorderTracks(playlistId, trackOrder, userID);
 
     res.json({
       message: 'Tracks reordered successfully',
@@ -293,11 +307,12 @@ router.put('/:id/tracks/reorder', async (req, res) => {
 router.get('/:id/stats', async (req, res) => {
   try {
     const { id } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
 
     console.log(`📊 Getting stats for playlist ${playlistId}`);
 
-    const stats = await Playlist.getStats(playlistId);
+    const stats = await Playlist.getStats(playlistId, userID);
 
     if (!stats) {
       return res.status(404).json({
@@ -323,9 +338,10 @@ router.get('/:id/stats', async (req, res) => {
 router.get('/:id/tracks/:videoId/check', async (req, res) => {
   try {
     const { id, videoId } = req.params;
+    const userID = req.user.id; // ✅ Get userID from authenticated user
     const playlistId = id.startsWith('p') ? parseInt(id.substring(1)) : parseInt(id);
 
-    const exists = await Playlist.hasTrack(playlistId, videoId);
+    const exists = await Playlist.hasTrack(playlistId, videoId, userID);
 
     res.json({
       playlistId,

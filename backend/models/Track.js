@@ -3,8 +3,6 @@ const database = require('../config/database');
 class Track {
   /**
    * Save or update track in database
-   * @param {Object} trackData - Track information from YouTube
-   * @returns {Promise<Object>} - Saved track with database ID
    */
   static async save(trackData) {
     try {
@@ -19,11 +17,9 @@ class Track {
         viewCount = 0
       } = trackData;
 
-      // Check if track already exists
       const existing = await this.findByVideoId(videoId);
 
       if (existing) {
-        // Update existing track
         await database.query(
           `UPDATE tracks 
            SET title = ?, artist = ?, album = ?, cover_url = ?, 
@@ -32,18 +28,18 @@ class Track {
           [title, artist, album, coverUrl, duration, channelTitle, viewCount, videoId]
         );
 
-        return { ...existing, ...trackData, id: existing.id };
+        return { ...existing, ...trackData, dbId: existing.dbId };
       } else {
-        // Insert new track
         const result = await database.query(
-          `INSERT INTO tracks (video_id, title, artist, album, cover_url, duration, channel_title, view_count)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO tracks (video_id, title, artist, album, cover_url, duration, channel_title, view_count, is_downloaded)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)`,
           [videoId, title, artist, album, coverUrl, duration, channelTitle, viewCount]
         );
 
         return {
-          id: result.insertId,
-          ...trackData
+          dbId: result.insertId,
+          ...trackData,
+          isDownloaded: false
         };
       }
     } catch (error) {
@@ -53,9 +49,51 @@ class Track {
   }
 
   /**
+   * Update the local file status after a successful download
+   */
+  static async updateLocalStatus(videoId, filePath, fileSizeMB) {
+    try {
+      await database.query(
+        `UPDATE tracks 
+         SET local_path = ?, is_downloaded = 1, file_size_mb = ? 
+         WHERE video_id = ?`,
+        [filePath, fileSizeMB, videoId]
+      );
+      console.log(`💾 Hybrid Storage: Track ${videoId} marked as local.`);
+      return true;
+    } catch (error) {
+      console.error('Error updating local status:', error);
+      throw error;
+    }
+  }
+
+  // ✅ NEW: Unlike Logic to remove from database
+  /**
+   * Remove a track from a user's liked list
+   * @param {number} userId 
+   * @param {string} videoId 
+   */
+  static async unlike(userId, videoId) {
+    try {
+      // 1. Get the internal DB ID first
+      const track = await this.findByVideoId(videoId);
+      if (!track) return false;
+
+      // 2. Delete the relation from the liked_tracks table
+      const result = await database.query(
+        'DELETE FROM liked_tracks WHERE user_id = ? AND track_id = ?',
+        [userId, track.dbId]
+      );
+      
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Model Error (unlike):', error);
+      throw error;
+    }
+  }
+
+  /**
    * Find track by video ID
-   * @param {string} videoId
-   * @returns {Promise<Object|null>}
    */
   static async findByVideoId(videoId) {
     try {
@@ -73,8 +111,6 @@ class Track {
 
   /**
    * Find track by database ID
-   * @param {number} id
-   * @returns {Promise<Object|null>}
    */
   static async findById(id) {
     try {
@@ -92,9 +128,6 @@ class Track {
 
   /**
    * Get all tracks with pagination
-   * @param {number} limit
-   * @param {number} offset
-   * @returns {Promise<Array>}
    */
   static async getAll(limit = 50, offset = 0) {
     try {
@@ -111,81 +144,30 @@ class Track {
   }
 
   /**
-   * Get most played tracks
-   * @param {number} limit
-   * @returns {Promise<Array>}
-   */
-  static async getMostPlayed(limit = 20) {
-    try {
-      const rows = await database.query(
-        'SELECT * FROM tracks WHERE play_count > 0 ORDER BY play_count DESC, last_played_at DESC LIMIT ?',
-        [limit]
-      );
-
-      return rows.map(row => this.formatTrack(row));
-    } catch (error) {
-      console.error('Error getting most played tracks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get recently played tracks
-   * @param {number} limit
-   * @returns {Promise<Array>}
-   */
-  static async getRecentlyPlayed(limit = 20) {
-    try {
-      const rows = await database.query(
-        `SELECT t.*, h.played_at 
-         FROM tracks t
-         INNER JOIN listening_history h ON t.id = h.track_id
-         ORDER BY h.played_at DESC
-         LIMIT ?`,
-        [limit]
-      );
-
-      return rows.map(row => this.formatTrack(row));
-    } catch (error) {
-      console.error('Error getting recently played:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Increment play count and add to listening history
-   * @param {string} videoId
-   * @returns {Promise<void>}
    */
   static async recordPlay(videoId) {
     try {
       await database.transaction(async (connection) => {
-        // Get track ID
         const [tracks] = await connection.execute(
           'SELECT id FROM tracks WHERE video_id = ?',
           [videoId]
         );
 
-        if (tracks.length === 0) {
-          throw new Error('Track not found');
-        }
+        if (tracks.length === 0) throw new Error('Track not found');
 
         const trackId = tracks[0].id;
 
-        // Update play count and last played time
         await connection.execute(
           'UPDATE tracks SET play_count = play_count + 1, last_played_at = NOW() WHERE id = ?',
           [trackId]
         );
 
-        // Add to listening history
         await connection.execute(
           'INSERT INTO listening_history (track_id) VALUES (?)',
           [trackId]
         );
       });
-
-      console.log(`✅ Recorded play for: ${videoId}`);
     } catch (error) {
       console.error('Error recording play:', error);
       throw error;
@@ -193,33 +175,7 @@ class Track {
   }
 
   /**
-   * Search tracks in database
-   * @param {string} query
-   * @param {number} limit
-   * @returns {Promise<Array>}
-   */
-  static async search(query, limit = 20) {
-    try {
-      const searchTerm = `%${query}%`;
-      const rows = await database.query(
-        `SELECT * FROM tracks 
-         WHERE title LIKE ? OR artist LIKE ? OR album LIKE ?
-         ORDER BY play_count DESC
-         LIMIT ?`,
-        [searchTerm, searchTerm, searchTerm, limit]
-      );
-
-      return rows.map(row => this.formatTrack(row));
-    } catch (error) {
-      console.error('Error searching tracks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Delete track by video ID
-   * @param {string} videoId
-   * @returns {Promise<boolean>}
+   * Delete track and its local reference
    */
   static async delete(videoId) {
     try {
@@ -227,7 +183,6 @@ class Track {
         'DELETE FROM tracks WHERE video_id = ?',
         [videoId]
       );
-
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error deleting track:', error);
@@ -236,87 +191,13 @@ class Track {
   }
 
   /**
-   * Get total track count
-   * @returns {Promise<number>}
-   */
-  static async count() {
-    try {
-      const rows = await database.query('SELECT COUNT(*) as count FROM tracks');
-      return rows[0].count;
-    } catch (error) {
-      console.error('Error counting tracks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get listening statistics for a track
-   * @param {string} videoId
-   * @returns {Promise<Object>}
-   */
-  static async getStats(videoId) {
-    try {
-      const track = await this.findByVideoId(videoId);
-      
-      if (!track) {
-        return null;
-      }
-
-      // Get play history count by date
-      const historyRows = await database.query(
-        `SELECT DATE(played_at) as date, COUNT(*) as plays
-         FROM listening_history
-         WHERE track_id = ?
-         GROUP BY DATE(played_at)
-         ORDER BY date DESC
-         LIMIT 30`,
-        [track.id]
-      );
-
-      return {
-        track,
-        totalPlays: track.playCount,
-        lastPlayed: track.lastPlayedAt,
-        playHistory: historyRows
-      };
-    } catch (error) {
-      console.error('Error getting track stats:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Batch save multiple tracks
-   * @param {Array} tracks - Array of track data
-   * @returns {Promise<Array>}
-   */
-  static async batchSave(tracks) {
-    try {
-      const savedTracks = [];
-
-      for (const track of tracks) {
-        const saved = await this.save(track);
-        savedTracks.push(saved);
-      }
-
-      console.log(`✅ Batch saved ${savedTracks.length} tracks`);
-      return savedTracks;
-    } catch (error) {
-      console.error('Error batch saving tracks:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Format database row to frontend format
-   * @param {Object} row - Database row
-   * @returns {Object}
+   * Format database row to hybrid-ready frontend format
    */
   static formatTrack(row) {
     return {
-      id: row.video_id, // Use video_id as the track ID for frontend
+      id: row.video_id, 
       videoId: row.video_id,
-      dbId: row.id, // Keep database ID for internal use
+      dbId: row.id, 
       title: row.title,
       artist: row.artist,
       album: row.album,
@@ -326,7 +207,10 @@ class Track {
       viewCount: row.view_count,
       playCount: row.play_count,
       createdAt: row.created_at,
-      lastPlayedAt: row.last_played_at
+      lastPlayedAt: row.last_played_at,
+      isDownloaded: Boolean(row.is_downloaded),
+      localPath: row.local_path,
+      fileSizeMB: row.file_size_mb
     };
   }
 }

@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const crypto = require('crypto');
+const Session = require('../models/Sessions');
+const { authenticateToken } = require('../middleware/auth');
 
 /**
  * POST /api/auth/register
@@ -25,13 +26,11 @@ router.post('/register', async (req, res) => {
     // Create user
     const user = await User.create({ username, password });
 
-    // Generate session token
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
-
-    // Save session (optional - implement if you want persistent sessions)
-    // For now, we'll just return the token
+    // Create session
+    const session = await Session.create(user.id, {
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.status(201).json({
       message: 'Registration successful',
@@ -39,7 +38,7 @@ router.post('/register', async (req, res) => {
         id: user.id,
         username: user.username
       },
-      token: sessionToken
+      token: session.token
     });
 
     console.log(`✅ User registered: ${username}`);
@@ -99,13 +98,11 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Generate session token
-    const sessionToken = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
-
-    // Save session to database (optional)
-    // await saveSession(user.id, sessionToken, expiresAt);
+    // Create session
+    const session = await Session.create(user.id, {
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent']
+    });
 
     res.json({
       message: 'Login successful',
@@ -114,7 +111,7 @@ router.post('/login', async (req, res) => {
         username: user.username,
         lastLogin: user.lastLogin
       },
-      token: sessionToken
+      token: session.token
     });
 
     console.log(`✅ User logged in: ${username}`);
@@ -133,19 +130,18 @@ router.post('/login', async (req, res) => {
  * Logout user (invalidate token)
  * Headers: Authorization: Bearer <token>
  */
-router.post('/logout', async (req, res) => {
+router.post('/logout', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const token = req.token;
 
-    if (token) {
-      // Delete session from database
-      // await deleteSession(token);
-      console.log('👋 User logged out');
-    }
+    // Delete session from database
+    await Session.delete(token);
 
     res.json({
       message: 'Logout successful'
     });
+
+    console.log(`👋 User logged out: ${req.user.username}`);
 
   } catch (error) {
     console.error('Logout error:', error);
@@ -161,26 +157,23 @@ router.post('/logout', async (req, res) => {
  * Get current user info
  * Headers: Authorization: Bearer <token>
  */
-router.get('/me', async (req, res) => {
+router.get('/me', authenticateToken, async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Get full user info
+    const user = await User.findById(req.user.id);
 
-    if (!token) {
-      return res.status(401).json({
-        error: 'Not authenticated',
-        message: 'No token provided'
+    if (!user) {
+      return res.status(404).json({
+        error: 'User not found'
       });
     }
 
-    // Verify token and get user
-    // For now, this is a placeholder
-    // You'll need to implement token verification
-
     res.json({
       user: {
-        id: 1,
-        username: 'demo_user',
-        message: 'Token verification not yet implemented'
+        id: user.id,
+        username: user.username,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin
       }
     });
 
@@ -199,17 +192,10 @@ router.get('/me', async (req, res) => {
  * Body: { currentPassword, newPassword }
  * Headers: Authorization: Bearer <token>
  */
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const token = req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({
-        error: 'Not authenticated',
-        message: 'No token provided'
-      });
-    }
+    const userId = req.user.id;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -218,14 +204,14 @@ router.post('/change-password', async (req, res) => {
       });
     }
 
-    // Get user ID from token (placeholder - implement token verification)
-    const userId = 1; // Replace with actual user ID from token
-
     // Change password
     await User.changePassword(userId, currentPassword, newPassword);
 
+    // Invalidate all other sessions (optional - force re-login on all devices)
+    await Session.deleteAllForUser(userId);
+
     res.json({
-      message: 'Password changed successfully'
+      message: 'Password changed successfully. Please login again.'
     });
 
     console.log(`✅ Password changed for user ID: ${userId}`);
@@ -266,6 +252,54 @@ router.get('/check-username/:username', async (req, res) => {
     console.error('Check username error:', error);
     res.status(500).json({
       error: 'Failed to check username',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/auth/sessions
+ * Get all active sessions for current user
+ * Headers: Authorization: Bearer <token>
+ */
+router.get('/sessions', authenticateToken, async (req, res) => {
+  try {
+    const sessions = await Session.getActiveForUser(req.user.id);
+
+    res.json({
+      sessions,
+      count: sessions.length
+    });
+
+  } catch (error) {
+    console.error('Get sessions error:', error);
+    res.status(500).json({
+      error: 'Failed to get sessions',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/auth/sessions
+ * Logout from all devices (delete all sessions)
+ * Headers: Authorization: Bearer <token>
+ */
+router.delete('/sessions', authenticateToken, async (req, res) => {
+  try {
+    const count = await Session.deleteAllForUser(req.user.id);
+
+    res.json({
+      message: 'Logged out from all devices',
+      sessionsDeleted: count
+    });
+
+    console.log(`👋 User logged out from all devices: ${req.user.username}`);
+
+  } catch (error) {
+    console.error('Delete all sessions error:', error);
+    res.status(500).json({
+      error: 'Failed to logout from all devices',
       message: error.message
     });
   }

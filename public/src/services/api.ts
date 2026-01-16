@@ -7,6 +7,48 @@ console.log(import.meta.env.VITE_BACKEND_URL)
 // Backend base URL
 const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'http://localhost:3001';
 
+
+// ============================================
+// TRACK / LIKES API
+// ============================================
+
+export const trackAPI = {
+  getLikedTracks: async (): Promise<Track[]> => {
+    try {
+      const response = await apiClient.get('/tracks/liked');
+      // CHANGE: Return response.data directly because it IS the array
+      return response.data; 
+    } catch (error) {
+      console.error('Get liked tracks failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Like a track (Save to DB)
+   */
+  likeTrack: async (trackData: Track): Promise<void> => {
+    try {
+      await apiClient.post('/tracks/like', { trackData });
+    } catch (error) {
+      console.error('Like track failed:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Unlike a track (Remove from DB)
+   */
+  unlikeTrack: async (trackId: string): Promise<void> => {
+    try {
+      await apiClient.delete(`/tracks/like/${trackId}`);
+    } catch (error) {
+      console.error('Unlike track failed:', error);
+      throw error;
+    }
+  }
+};
+
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
   baseURL: `${BASE_URL}/api`,
