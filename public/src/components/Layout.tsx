@@ -18,7 +18,7 @@ const Sidebar = () => {
     <aside className="hidden md:flex flex-col w-64 bg-black p-6 gap-8 h-screen sticky top-0 border-r border-zinc-800">
       <div className="flex items-center gap-2 text-white text-2xl font-bold">
         <Music2 className="text-[#1DB954]" size={32} />
-        <span>Audify</span>
+        <span>CheriFI</span>
       </div>
 
       <nav className="flex flex-col gap-4 text-zinc-400 font-medium">
@@ -148,7 +148,7 @@ const Layout: React.FC = () => {
             >
               <User size={24} className="text-zinc-400 group-hover:text-white" />
             </button>
-            <h1 className="text-2xl font-bold">Audify</h1>
+            <h1 className="text-2xl font-bold">CheriFI</h1>
 
             <div className="flex items-center gap-2">
               {/* Chat Icon Button */}

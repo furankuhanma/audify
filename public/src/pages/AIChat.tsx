@@ -25,7 +25,7 @@ const AIChat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Hey! I'm your Audify AI Assistant. Soon, you'll be able to tell me how you're feeling, and I'll build the perfect vibe for you!",
+      text: "Hey! I'm Mariz AI Assistant. Soon, you'll be able to tell me how you're feeling, and I'll build the perfect vibe for you!",
       sender: 'ai',
       timestamp: new Date(),
     },
@@ -144,7 +144,7 @@ const AIChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-white">
+    <div className="pt-5 flex flex-col h-screen bg-zinc-950 text-white">
       {/* 1️⃣ HEADER */}
       <div className="shrink-0 flex items-center justify-between p-4 bg-zinc-900/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="flex items-center gap-3">
@@ -155,7 +155,7 @@ const AIChat: React.FC = () => {
             <Bot className="text-blue-400" size={24} />
           </div>
           <div>
-            <h2 className="font-bold text-sm">Audify AI</h2>
+            <h2 className="font-bold text-sm">Mariz AI</h2>
             <div className="flex items-center gap-1.5">
               <div className={`w-2 h-2 ${isComingSoon ? 'bg-orange-500' : 'bg-[#1DB954]'} rounded-full animate-pulse`} />
               <span className="text-[10px] text-zinc-400">{isComingSoon ? 'Beta Testing' : 'Online'}</span>

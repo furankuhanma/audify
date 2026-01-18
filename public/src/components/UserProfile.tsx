@@ -150,7 +150,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
 
         {/* Footer Info */}
         <div className="p-6 pt-2 text-center">
-          <p className="text-xs text-zinc-500 mb-2">Audify v1.0.0</p>
+          <p className="text-xs text-zinc-500 mb-2">CheriFI v1.0.0</p>
           <div className="flex items-center justify-center gap-4 text-xs text-zinc-500">
             <button className="hover:text-white transition">Privacy Policy</button>
             <span>•</span>

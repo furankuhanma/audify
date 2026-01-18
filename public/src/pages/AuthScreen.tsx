@@ -64,7 +64,7 @@ const AuthScreen: React.FC = () => {
         await login(username, password);
       } else {
         await register(username, password);
-        setSuccess('Account created successfully! Welcome to VibeStream.');
+        setSuccess('Account created successfully! Welcome to CheriFI.');
       }
     } catch (err) {
       console.error('Auth error:', err);
@@ -88,18 +88,18 @@ const AuthScreen: React.FC = () => {
   const displayError = localError || error;
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-start py-10 px-4">
+    <div className="p-8 mt-10 min-h-screen bg-black flex flex-col items-center justify-start py-10 px-4">
       {/* Spotify-style Header Logo */}
       <div className="flex items-center gap-2 mb-12">
-        <div className="bg-white p-2 rounded-full">
-            <Music className="w-8 h-8 text-black" fill="currentColor" />
+        <div className="bg-blue-400 p-2 rounded-full">
+            <Music className="w-8 h-8 text-black" />
         </div>
-        <span className="text-white text-3xl font-extrabold tracking-tight">VibeStream</span>
+        <span className="text-white text-3xl font-extrabold tracking-tight">CheriFI</span>
       </div>
 
       <div className="w-full max-w-[450px] bg-gradient-to-b from-[#121212] to-black p-10 md:p-14 rounded-xl shadow-2xl border border-zinc-800/30">
         <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-8 text-center">
-          {isLogin ? 'Log in to VibeStream' : 'Sign up for free'}
+          {isLogin ? 'Log in to CheriFI' : 'Sign up for free'}
         </h2>
 
         {/* Global Feedback Messages */}
@@ -183,7 +183,7 @@ const AuthScreen: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#1DB954] hover:bg-[#1ed760] hover:scale-[1.02] active:scale-[0.98] text-black font-bold py-3.5 rounded-full transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+              className="w-full bg-blue-500 hover:bg-[#1ed760] hover:scale-[1.02] active:scale-[0.98] text-black font-bold py-3.5 rounded-full transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -201,9 +201,9 @@ const AuthScreen: React.FC = () => {
               <button
                 onClick={switchMode}
                 disabled={isLoading}
-                className="text-white font-bold hover:underline hover:text-[#1DB954] transition-colors"
+                className="text-white font-bold hover:underline hover:text-blue-400 transition-colors"
               >
-                {isLogin ? 'Sign up for VibeStream' : 'Log in here'}
+                {isLogin ? 'Sign up for CheriFI' : 'Log in here'}
               </button>
             </p>
         </div>

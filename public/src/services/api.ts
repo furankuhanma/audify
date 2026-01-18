@@ -5,7 +5,7 @@ import { Track, Playlist } from '../types/types';
 
 console.log(import.meta.env.VITE_BACKEND_URL)
 // Backend base URL
-const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string) || 'https://100.84.3.61:3001';
+const BASE_URL = (import.meta.env.VITE_BACKEND_URL as string);
 
 // Create axios instance with default config
 const apiClient: AxiosInstance = axios.create({
