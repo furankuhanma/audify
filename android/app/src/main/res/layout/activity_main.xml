@@ -9,7 +9,7 @@
     >
 
     <WebView
-        android:layout_width="match_parent"
+        android:layout_width="658dp"
         android:layout_height="match_parent"
-        android:background="@drawable/splash"/>
+        android:background="@drawable/splash" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

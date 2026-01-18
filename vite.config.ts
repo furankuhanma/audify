@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0', // Allow access from local network
       proxy: {
         '/api': {
-          target: 'http://localhost:3001', // Your backend server
+          target: 'https://localhost:3001', // Your backend server
           changeOrigin: true,
           secure: false,
         },

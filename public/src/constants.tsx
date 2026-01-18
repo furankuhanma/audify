@@ -1,7 +1,7 @@
 import { Category } from './types/types';
 
 // Backend API URL
-export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'https://localhost:3001';
 
 // Categories for Search page
 export const CATEGORIES: Category[] = [
