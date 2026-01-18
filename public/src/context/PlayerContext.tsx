@@ -143,7 +143,6 @@ const toggleRepeat = useCallback(() => {
 
   // Handle audio error
   const handleAudioError = async (e: Event) => {
-    console.error('❌ Audio playback error:', e);
     setIsPlaying(false);
 
     // If offline playback failed, try online as fallback
