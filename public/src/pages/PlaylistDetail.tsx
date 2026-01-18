@@ -186,7 +186,7 @@ const PlaylistDetail: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] animate-in fade-in">
-        <div className="w-16 h-16 border-4 border-[#1DB954] border-t-transparent rounded-full animate-spin mb-4" />
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-zinc-400">Loading playlist...</p>
       </div>
     );
@@ -208,7 +208,7 @@ const PlaylistDetail: React.FC = () => {
             {id && (
               <button 
                 onClick={() => loadPlaylist(id)}
-                className="px-4 py-2 bg-[#1DB954] text-black hover:bg-[#1ed760] rounded-full text-sm font-medium transition"
+                className="px-4 py-2 bg-blue-500 text-black hover:bg-[#1ed760] rounded-full text-sm font-medium transition"
               >
                 Try Again
               </button>
@@ -254,7 +254,7 @@ const PlaylistDetail: React.FC = () => {
         <button 
           onClick={handlePlayPlaylist}
           disabled={!playlist.tracks || playlist.tracks.length === 0}
-          className="w-14 h-14 bg-[#1DB954] rounded-full flex items-center justify-center text-black hover:scale-105 transition shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
+          className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center text-black hover:scale-105 transition shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
         >
           <Play size={28} className="ml-1 fill-current" />
         </button>
@@ -303,12 +303,12 @@ const PlaylistDetail: React.FC = () => {
                     isCurrent ? 'bg-zinc-800/50' : ''
                   }`}
                 >
-                  <span className={`hidden md:inline text-sm ${isCurrent ? 'text-[#1DB954]' : 'text-zinc-400 group-hover:text-white'}`}>
+                  <span className={`hidden md:inline text-sm ${isCurrent ? 'text-blue-500 ' : 'text-zinc-400 group-hover:text-white'}`}>
                     {isCurrent && isPlaying ? (
                       <div className="flex items-end gap-[2px] h-3">
-                        <div className="w-1 h-2 bg-[#1DB954] animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.1s' }} />
-                        <div className="w-1 h-3 bg-[#1DB954] animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.3s' }} />
-                        <div className="w-1 h-2 bg-[#1DB954] animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.2s' }} />
+                        <div className="w-1 h-2 bg-blue-500 animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.1s' }} />
+                        <div className="w-1 h-3 bg-blue-500 animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.3s' }} />
+                        <div className="w-1 h-2 bg-blue-500 animate-[bounce_0.6s_infinite]" style={{ animationDelay: '0.2s' }} />
                       </div>
                     ) : (
                       index + 1
@@ -333,7 +333,7 @@ const PlaylistDetail: React.FC = () => {
                       )}
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                      <span className={`text-sm font-medium truncate ${isCurrent ? 'text-[#1DB954]' : 'text-white'}`}>
+                      <span className={`text-sm font-medium truncate ${isCurrent ? 'text-blue-500 ' : 'text-white'}`}>
                         {track.title}
                       </span>
                       <span className="text-xs text-zinc-400 truncate">{track.artist}</span>
@@ -386,7 +386,7 @@ const PlaylistDetail: React.FC = () => {
               <p className="text-sm mb-6">Add some tracks to get started!</p>
               <button 
                 onClick={() => navigate('/search')}
-                className="px-6 py-3 bg-[#1DB954] text-black rounded-full font-bold hover:scale-105 transition"
+                className="px-6 py-3 bg-blue-500 text-black rounded-full font-bold hover:scale-105 transition"
               >
                 Search for Music
               </button>

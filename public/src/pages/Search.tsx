@@ -160,6 +160,8 @@ const Search: React.FC = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-white text-black py-3 pl-10 pr-4 rounded-full font-medium focus:outline-none placeholder-zinc-500"
         />
+
+
       </div>
 
       {/* Search Results */}
@@ -168,7 +170,7 @@ const Search: React.FC = () => {
           {isSearching && (
             <div className="flex items-center justify-center py-20">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-[#1DB954] border-t-transparent rounded-full animate-spin" />
+                <div className="w-12 h-12 border-4 border-blue-500  border-t-transparent rounded-full animate-spin" />
                 <p className="text-zinc-400">Searching...</p>
               </div>
             </div>
@@ -179,7 +181,7 @@ const Search: React.FC = () => {
               <p className="text-red-400">❌ {searchError}</p>
               <button
                 onClick={() => handleSearch(searchQuery)}
-                className="mt-2 text-sm text-[#1DB954] hover:underline"
+                className="mt-2 text-sm text-blue-500  hover:underline"
               >
                 Try again
               </button>
@@ -233,7 +235,7 @@ const Search: React.FC = () => {
                       onClick={() => handleTrackClick(track)}
                       className="min-w-0 flex-1 cursor-pointer"
                     >
-                      <h3 className={`truncate text-sm font-bold mb-0.5 ${track.id === 'currently-playing-id' ? 'text-[#1DB954]' : 'text-white'}`}>
+                      <h3 className={`truncate text-sm font-bold mb-0.5 ${track.id === 'currently-playing-id' ? 'text-blue-500 ' : 'text-white'}`}>
                         {track.title}
                       </h3>
                       <div className="flex items-center gap-1 text-xs text-zinc-400">

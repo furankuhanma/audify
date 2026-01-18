@@ -35,7 +35,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinner = (
     <div className={`flex flex-col items-center justify-center gap-4 ${className}`}>
       <div 
-        className={`${sizeClasses[size]} ${borderClasses[size]} border-[#1DB954] border-t-transparent rounded-full animate-spin`}
+        className={`${sizeClasses[size]} ${borderClasses[size]} border- border-t-transparent rounded-full animate-spin`}
       />
       {message && (
         <p className="text-zinc-400 text-sm animate-pulse">{message}</p>
@@ -197,7 +197,7 @@ export const ErrorMessage: React.FC<ErrorMessageProps> = ({
         {onRetry && (
           <button 
             onClick={onRetry}
-            className="flex items-center gap-2 px-6 py-3 bg-[#1DB954] text-black rounded-full font-bold hover:scale-105 transition"
+            className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-black rounded-full font-bold hover:scale-105 transition"
           >
             <RefreshCw size={18} />
             {retryText}
@@ -263,7 +263,7 @@ export const Toast: React.FC<ToastProps> = ({
 
   const typeStyles = {
     success: {
-      bg: 'bg-[#1DB954]',
+      bg: 'bg-blue-500',
       text: 'text-black',
       icon: <CheckCircle size={20} />
     },
@@ -337,7 +337,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       {actionLabel && onAction && (
         <button 
           onClick={onAction}
-          className="bg-[#1DB954] text-black px-8 py-3 rounded-full font-bold hover:scale-105 transition mt-4"
+          className="bg-blue-500 text-black px-8 py-3 rounded-full font-bold hover:scale-105 transition mt-4"
         >
           {actionLabel}
         </button>

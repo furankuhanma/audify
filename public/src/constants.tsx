@@ -16,7 +16,7 @@ export const CATEGORIES: Category[] = [
 ];
 
 // VibeStream brand color
-export const ACCENT_COLOR = '#1DB954'; // Spotify Green
+export const ACCENT_COLOR = 'blue-500'; // Spotify Green
 
 // Default placeholder images
 export const DEFAULT_TRACK_COVER = 'https://picsum.photos/seed/track/400/400';

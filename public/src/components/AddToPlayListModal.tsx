@@ -160,7 +160,7 @@ const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                         {isAdding ? (
                           <Loader size={20} className="text-zinc-400 animate-spin" />
                         ) : isSuccess ? (
-                          <Check size={20} className="text-[#1DB954]" />
+                          <Check size={20} className="text-blue-500" />
                         ) : (
                           <Plus size={20} className="text-zinc-500 group-hover:text-white transition" />
                         )}

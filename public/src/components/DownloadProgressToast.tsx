@@ -47,18 +47,18 @@ const DownloadProgressToast: React.FC = () => {
           <div
             key={download.trackId}
             className={`bg-gray-900 border rounded-lg shadow-xl p-4 backdrop-blur-md transition-all duration-300 ${
-              isCompleted ? 'border-[#1DB954]' : isFailed ? 'border-red-500' : 'border-gray-700'
+              isCompleted ? 'border-blue-400' : isFailed ? 'border-red-500' : 'border-gray-700'
             }`}
           >
             <div className="flex items-start gap-3">
               {/* Icon */}
               <div className={`flex-shrink-0 rounded-full p-2 ${
-                isCompleted ? 'bg-[#1DB954]/20' : 
+                isCompleted ? 'bg-blue-500/20' : 
                 isFailed ? 'bg-red-500/20' : 
                 'bg-blue-500/20'
               }`}>
                 {isCompleted ? (
-                  <CheckCircle size={20} className="text-[#1DB954]" />
+                  <CheckCircle size={20} className="text-blue-500" />
                 ) : isFailed ? (
                   <XCircle size={20} className="text-red-500" />
                 ) : (
@@ -116,7 +116,7 @@ const DownloadProgressToast: React.FC = () => {
 
                 {/* Success Message */}
                 {isCompleted && (
-                  <p className="text-xs text-[#1DB954] mt-1">
+                  <p className="text-xs text-blue-500 mt-1">
                     Available offline now
                   </p>
                 )}

@@ -116,7 +116,7 @@ const Player = () => {
         <div className="w-full flex items-center gap-2">
           <span className="text-[10px] text-zinc-500 w-8 text-right">{formatTime(progress)}</span>
           <div className="flex-1 h-1 bg-zinc-700 rounded-full relative group">
-            <div className="absolute h-full bg-[#1DB954] group-hover:bg-[#1ed760] rounded-full" style={{ width: `${progressPercent}%` }} />
+            <div className="absolute h-full bg-blue-500 group-hover:bg-[#1ed760] rounded-full" style={{ width: `${progressPercent}%` }} />
           </div>
           <span className="text-[10px] text-zinc-500 w-8">{formatTime(currentTrack.duration)}</span>
         </div>

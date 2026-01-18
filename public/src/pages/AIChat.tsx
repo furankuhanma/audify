@@ -157,7 +157,7 @@ const AIChat: React.FC = () => {
           <div>
             <h2 className="font-bold text-sm">Mariz AI</h2>
             <div className="flex items-center gap-1.5">
-              <div className={`w-2 h-2 ${isComingSoon ? 'bg-orange-500' : 'bg-[#1DB954]'} rounded-full animate-pulse`} />
+              <div className={`w-2 h-2 ${isComingSoon ? 'bg-orange-500' : 'bg-blue-500'} rounded-full animate-pulse`} />
               <span className="text-[10px] text-zinc-400">{isComingSoon ? 'Beta Testing' : 'Online'}</span>
             </div>
           </div>

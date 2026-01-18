@@ -215,13 +215,13 @@ const TrackOptionsMenu: React.FC<TrackOptionsMenuProps> = ({
                     disabled={isDownloaded}
                   >
                     <div className={`p-2 rounded transition ${isDownloaded
-                        ? 'bg-[#1DB954]/20'
+                        ? 'bg-blue-500/20'
                         : 'bg-zinc-800 group-hover:bg-zinc-700'
                       }`}>
                       <Download
                         size={18}
                         className={`transition ${isDownloaded
-                            ? 'text-[#1DB954]'
+                            ? 'text-blue-500'
                             : 'text-zinc-400 group-hover:text-white'
                           }`}
                       />

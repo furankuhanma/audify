@@ -22,7 +22,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
         <div className="relative">
             {/* Pulsing Spotify-like icon loader */}
-            <div className="w-16 h-16 bg-[#1DB954] rounded-full flex items-center justify-center animate-pulse shadow-[0_0_40px_-10px_rgba(29,185,84,0.6)]">
+            <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center animate-pulse shadow-[0_0_40px_-10px_rgba(29,185,84,0.6)]">
                 <div className="w-8 h-8 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
             </div>
         </div>

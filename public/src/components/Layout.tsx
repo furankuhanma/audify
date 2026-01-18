@@ -17,7 +17,7 @@ const Sidebar = () => {
   return (
     <aside className="hidden md:flex flex-col w-64 bg-black p-6 gap-8 h-screen sticky top-0 border-r border-zinc-800">
       <div className="flex items-center gap-2 text-white text-2xl font-bold">
-        <Music2 className="text-[#1DB954]" size={32} />
+        <Music2 className="text-blue-500" size={32} />
         <span>CheriFI</span>
       </div>
 
