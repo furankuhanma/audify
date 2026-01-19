@@ -80,7 +80,7 @@ public class MainActivity extends BridgeActivity {
      */
     private void fetchData() {
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://frank-loui-lapore-hp-probook-640-g1.tail11c2e9.ts.net/")
+                .baseUrl("https://frank-loui-lapore-hp-probook-640-g1.tail11c2e9.ts.net")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 

@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import Search from './pages/Search';
 import Library from './pages/Library';
 import PlaylistDetail from './pages/PlaylistDetail';
-import OfflineLibrary from './pages/OfflineLibrary';
+import { getOfflineStorage } from './services/storageAdapter';
 import AIChat from './pages/AIChat';
 import AuthScreen from './pages/AuthScreen';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -49,7 +49,7 @@ const App: React.FC = () => {
                     <Route index element={<Home />} />
                     <Route path="search" element={<Search />} />
                     <Route path="library" element={<Library />} />
-                    <Route path="offline" element={<OfflineLibrary />} />
+                    <Route path="offline" element={<getOfflineStorage />} />
                     <Route path="playlist/:id" element={<PlaylistDetail />} />
                   </Route>
                 </Routes>

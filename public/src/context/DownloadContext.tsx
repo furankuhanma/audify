@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Track } from '../types/types';
 import { useAuth } from './AuthContext';
-import offlineDB from '../services/offlineDB';
+import { getOfflineStorage } from '../services/storageAdapter';
+import type { StorageAdapter } from '../services/storageAdapter';
 
 interface DownloadedTrack {
   track: Track;
@@ -41,11 +42,14 @@ interface DownloadProviderProps {
 export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) => {
   const [downloadedTracks, setDownloadedTracks] = useState<DownloadedTrack[]>([]);
   const [downloadQueue, setDownloadQueue] = useState<DownloadProgress[]>([]);
+  const [storageReady, setStorageReady] = useState(false);
   const { user } = useAuth();
 
-  // Initialize IndexedDB and load downloaded tracks on mount
+  // Initialize storage on mount
   useEffect(() => {
-    initializeOfflineStorage();
+    if (user) {
+      initializeOfflineStorage();
+    }
   }, [user]);
 
   /**
@@ -53,19 +57,23 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
    */
   const initializeOfflineStorage = async () => {
     try {
-      await offlineDB.init();
+      await getOfflineStorage();
       await loadDownloadedTracks();
+      setStorageReady(true);
+      console.log('✅ Offline storage initialized');
     } catch (error) {
       console.error('❌ Failed to initialize offline storage:', error);
+      setStorageReady(false);
     }
   };
 
   /**
-   * Load downloaded tracks from IndexedDB
+   * Load downloaded tracks from storage
    */
   const loadDownloadedTracks = async () => {
     try {
-      const metadata = await offlineDB.getAllMetadata();
+      const storage = await getOfflineStorage();
+      const metadata = await storage.getAllMetadata();
       
       const tracks: DownloadedTrack[] = metadata.map(meta => ({
         track: {
@@ -83,6 +91,7 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
       }));
 
       setDownloadedTracks(tracks);
+      console.log(`📱 Loaded ${tracks.length} downloaded tracks`);
     } catch (error) {
       console.error('❌ Failed to load downloaded tracks:', error);
     }
@@ -140,6 +149,9 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
     setDownloadQueue(prev => [...prev, downloadProgress]);
 
     try {
+      // Get storage instance
+      const storage = await getOfflineStorage();
+
       // Get auth token for authenticated request
       const token = localStorage.getItem('auth_token');
 
@@ -155,10 +167,8 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
         throw new Error(`Failed to fetch audio: ${errorText}`);
       }
 
-      // ✅ FIXED: Relaxed content-type validation
+      // Validate content type
       const contentType = response.headers.get('content-type');
-      
-      // Allow audio/* or application/octet-stream (common for proxied streams)
       const isValidAudio = contentType?.includes('audio') || contentType?.includes('octet-stream');
       
       if (!isValidAudio && contentType?.includes('text/html')) {
@@ -198,17 +208,17 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
         );
       }
 
-      // ✅ FIXED: Combine chunks into single blob
+      // Combine chunks into single blob
       const audioBlob = new Blob(chunks as BlobPart[], { type: contentType || 'audio/mpeg' });
       const finalSize = audioBlob.size;
 
-      console.log(`💾 Saving to IndexedDB: ${track.title} (${(finalSize / 1024 / 1024).toFixed(2)} MB)`);
+      console.log(`💾 Saving to storage: ${track.title} (${(finalSize / 1024 / 1024).toFixed(2)} MB)`);
 
-      // Save to IndexedDB
-      await offlineDB.saveAudioFile(track.videoId, audioBlob);
+      // Save to storage
+      await storage.saveAudioFile(track.videoId, audioBlob);
       
       // Save metadata
-      await offlineDB.saveMetadata({
+      await storage.saveMetadata({
         videoId: track.videoId,
         trackId: track.id,
         title: track.title,
@@ -220,7 +230,7 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
         playCount: 0,
       });
 
-      // ✅ FIXED: Create downloaded track object (removed duplicate)
+      // Create downloaded track object
       const downloadedTrack: DownloadedTrack = {
         track: {
           ...track,
@@ -281,8 +291,11 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
         return;
       }
 
-      // Delete from IndexedDB
-      await offlineDB.deleteTrack(track.track.videoId);
+      // Get storage instance
+      const storage = await getOfflineStorage();
+
+      // Delete from storage
+      await storage.deleteTrack(track.track.videoId);
 
       // Remove from state
       setDownloadedTracks(prev => prev.filter(dt => dt.track.id !== trackId));
@@ -305,7 +318,8 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
    */
   const clearDownloads = async () => {
     try {
-      await offlineDB.clearAll();
+      const storage = await getOfflineStorage();
+      await storage.clearAll();
       setDownloadedTracks([]);
       console.log('🗑️ Cleared all downloads');
     } catch (error) {
@@ -318,7 +332,8 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
    */
   const getStorageUsage = async (): Promise<{ totalSizeMB: number; trackCount: number }> => {
     try {
-      const { totalSize, trackCount } = await offlineDB.getStorageUsage();
+      const storage = await getOfflineStorage();
+      const { totalSize, trackCount } = await storage.getStorageUsage();
       return {
         totalSizeMB: totalSize / 1024 / 1024,
         trackCount,
@@ -334,7 +349,9 @@ export const DownloadProvider: React.FC<DownloadProviderProps> = ({ children }) 
    */
   const getOfflineAudioUrl = async (videoId: string): Promise<string | null> => {
     try {
-      const audioBlob = await offlineDB.getAudioFile(videoId);
+      const storage = await getOfflineStorage();
+      const audioBlob = await storage.getAudioFile(videoId);
+      
       if (!audioBlob) {
         return null;
       }
