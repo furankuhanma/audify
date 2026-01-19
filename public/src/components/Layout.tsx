@@ -139,7 +139,7 @@ const Layout: React.FC = () => {
 
         {/* Top Bar with Chat Icon and Profile - Conditionall rendered */}
         {!shouldHideTopBar && (
-          <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 px-4 md:px-8 py-4 flex items-center justify-between">
+          <div className="mt-6 sticky top-0 z-30 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 px-4 md:px-8 py-4 flex items-center justify-between">
             {/* Profile Icon Button - Mobile Only */}
             <button
               onClick={() => setIsProfileOpen(true)}

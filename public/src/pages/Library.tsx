@@ -254,7 +254,7 @@ const Library: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 md:p-8 animate-in fade-in duration-500">
+    <div className="mt-6 space-y-6 md:p-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl md:text-3xl font-bold">Your Library</h1>
         {(activeTab === 'playlists' || activeTab == 'liked songs') && (

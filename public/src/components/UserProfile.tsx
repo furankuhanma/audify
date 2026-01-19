@@ -50,7 +50,7 @@ const UserProfileMenu: React.FC<UserProfileMenuProps> = ({
 >
 
         {/* Header */}
-        <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 flex items-center justify-between">
+        <div className="mt-6 sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 flex items-center justify-between">
           <h2 className="text-lg font-bold">Account</h2>
           <button 
             onClick={onClose}

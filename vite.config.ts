@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0', // Allow access from local network
       proxy: {
         '/api': {
-          target: 'https://localhost:3001', // Your backend server
+          target: 'https://frank-loui-lapore-hp-probook-640-g1.tail11c2e9.ts.net', // Your backend server
           changeOrigin: true,
           secure: false,
         },

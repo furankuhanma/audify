@@ -145,7 +145,7 @@ const Search: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="mt-6 space-y-6 animate-in fade-in duration-500">
       <h1 className="text-2xl md:text-3xl font-bold">Search</h1>
 
       {/* Search Input */}
