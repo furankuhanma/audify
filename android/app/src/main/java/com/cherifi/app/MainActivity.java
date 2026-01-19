@@ -1,8 +1,11 @@
 package com.cherifi.app;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import androidx.core.splashscreen.SplashScreen; // Import required for modern splash
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import androidx.core.splashscreen.SplashScreen;
 import com.getcapacitor.BridgeActivity;
 
 import java.util.List;
@@ -21,10 +24,60 @@ public class MainActivity extends BridgeActivity {
 
         super.onCreate(savedInstanceState);
 
-        // 2. Trigger the network call
+        // 2. Configure WebView for audio playback (NEW)
+        configureWebViewForAudio();
+
+        // 3. Trigger the network call (EXISTING - UNCHANGED)
         fetchData();
     }
 
+    /**
+     * Configure WebView settings for audio playback
+     * This fixes audio not playing in the app
+     */
+    private void configureWebViewForAudio() {
+        try {
+            // Get the Capacitor WebView
+            WebView webView = getBridge().getWebView();
+            
+            if (webView != null) {
+                WebSettings webSettings = webView.getSettings();
+                
+                // Enable media playback without user gesture
+                webSettings.setMediaPlaybackRequiresUserGesture(false);
+                
+                // Enable file access for offline audio
+                webSettings.setAllowFileAccess(true);
+                webSettings.setAllowContentAccess(true);
+                
+                // Enable mixed content (HTTP + HTTPS) for Android 5.0+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+                }
+                
+                // Enable DOM storage (needed for some audio libraries)
+                webSettings.setDomStorageEnabled(true);
+                
+                // Enable JavaScript (should already be enabled by Capacitor, but just in case)
+                webSettings.setJavaScriptEnabled(true);
+                
+                // Add SQLite bridge for offline storage
+                AndroidBridge androidBridge = new AndroidBridge(this);
+                webView.addJavascriptInterface(androidBridge, "AndroidBridge");
+                
+                Log.d("AUDIO_CONFIG", "✅ WebView configured for audio playback");
+                Log.d("AUDIO_CONFIG", "✅ SQLite bridge registered");
+            } else {
+                Log.e("AUDIO_CONFIG", "❌ WebView is null - cannot configure");
+            }
+        } catch (Exception e) {
+            Log.e("AUDIO_CONFIG", "❌ Error configuring WebView: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Fetch data from API (EXISTING - UNCHANGED)
+     */
     private void fetchData() {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://frank-loui-lapore-hp-probook-640-g1.tail11c2e9.ts.net/")
