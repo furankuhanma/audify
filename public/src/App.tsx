@@ -9,14 +9,19 @@ import OfflineLibrary from './pages/OfflineLibrary';
 import AIChat from './pages/AIChat';
 import AuthScreen from './pages/AuthScreen';
 import ProtectedRoute from './components/ProtectedRoute';
+import InstallPrompt from './components/InstallPrompt'; // ✅ NEW
 import { PlayerProvider } from './context/PlayerContext';
 import { LibraryProvider } from './context/LibraryContext';
 import { AuthProvider } from './context/AuthContext';
 import { LikeProvider } from './context/LikeContext';
 import { DownloadProvider } from './context/DownloadContext';
-import { HistoryProvider } from './context/HistoryContext'; // ✅ NEW
+import { HistoryProvider } from './context/HistoryContext';
+import { useServiceWorker } from './hooks/useServiceWorker'; // ✅ NEW
 
 const App: React.FC = () => {
+  // ✅ Register service worker
+  useServiceWorker();
+
   return (
     <AuthProvider>
       <LikeProvider>

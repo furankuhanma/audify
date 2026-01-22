@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CheriFI - Offline</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 500px;
+    }
+    
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+    
+    h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      font-weight: 800;
+    }
+    
+    p {
+      font-size: 16px;
+      color: #a1a1a1;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+    
+    .button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-block;
+      text-decoration: none;
+    }
+    
+    .button:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+    
+    .offline-features {
+      margin-top: 48px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 24px;
+      border-radius: 16px;
+    }
+    
+    .offline-features h2 {
+      font-size: 18px;
+      margin-bottom: 16px;
+    }
+    
+    .offline-features ul {
+      list-style: none;
+    }
+    
+    .offline-features li {
+      padding: 8px 0;
+      color: #a1a1a1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .offline-features li::before {
+      content: "✓";
+      color: #3b82f6;
+      font-weight: bold;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>It looks like you've lost your internet connection. Some features may be limited, but you can still access your downloaded music!</p>
+    
+    <button class="button" onclick="window.location.reload()">
+      Try Again
+    </button>
+    
+    <div class="offline-features">
+      <h2>Available Offline:</h2>
+      <ul>
+        <li>Play downloaded songs</li>
+        <li>View your library</li>
+        <li>Browse your playlists</li>
+        <li>See listening history</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // Auto-reload when connection is restored
+    window.addEventListener('online', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>

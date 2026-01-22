@@ -8,6 +8,16 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
+      fs: {
+        allow: [
+          // Allow serving from the project root (where index.html is)
+          path.resolve(__dirname, '.'),
+          // Explicitly allow src directory
+          path.resolve(__dirname, 'src'),
+          // Allow node_modules
+          path.resolve(__dirname, 'node_modules')
+        ]
+      },
       port: 3000,
       host: '0.0.0.0', // Allow access from local network
       proxy: {
