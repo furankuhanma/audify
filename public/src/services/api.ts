@@ -286,48 +286,66 @@ export const searchAPI = {
 // STREAM API - ✅ FIXED with Auth Support
 // ============================================
 
+// ============================================
+// STREAM API - ✅ OPTIMIZED: Token-Based Progressive Streaming
+// ============================================
+
 export const streamAPI = {
   /**
-   * Get stream URL for a video (legacy - for direct URLs without auth)
+   * ✅ OPTIMIZED: Get progressive stream URL using signed tokens
+   * This eliminates blob conversion and enables instant playback
+   * 
+   * @param {string} videoId - YouTube video ID
+   * @returns {Promise<string>} - Direct stream URL (progressive loading)
    */
-  getStreamUrl: (videoId: string): string => {
-    return `${BASE_URL}/api/stream/${videoId}`;
-  },
-
-  /**
-   * ✅ NEW: Fetch authenticated stream and return blob URL
-   * This allows the audio element to play with auth headers
-   */
-  getAuthenticatedStreamUrl: async (videoId: string): Promise<string> => {
+  getStreamUrl: async (videoId: string): Promise<string> => {
     try {
       const token = localStorage.getItem('auth_token');
       
-      console.log(`🔐 Fetching authenticated stream for: ${videoId}`);
+      console.log(`🎵 Requesting stream token for: ${videoId}`);
       
-      const response = await fetch(`${BASE_URL}/api/stream/${videoId}`, {
-        method: 'GET',
+      // Request signed stream token from backend
+      const response = await fetch(`${BASE_URL}/api/stream/token/${videoId}`, {
+        method: 'POST',
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
         },
       });
 
       if (!response.ok) {
-        throw new Error(`Stream request failed: ${response.status}`);
+        throw new Error(`Token request failed: ${response.status}`);
       }
 
-      // Convert to blob
-      const blob = await response.blob();
+      const data = await response.json();
       
-      // Create object URL
-      const objectUrl = URL.createObjectURL(blob);
-      
-      console.log(`✅ Created authenticated stream URL for: ${videoId}`);
-      return objectUrl;
+      if (!data.streamUrl) {
+        throw new Error('No stream URL returned from server');
+      }
+
+      console.log(`✅ Got stream token for: ${videoId} (expires in ${data.expiresIn}s)`);
+      return data.streamUrl;
       
     } catch (error) {
-      console.error('❌ Failed to get authenticated stream:', error);
-      throw error;
+      console.error('❌ Token-based streaming failed:', error);
+      
+      // Fallback: Direct URL with query parameter for auth
+      // Some browsers allow this, and our backend supports it
+      console.log('🔄 Falling back to direct stream URL');
+      const token = localStorage.getItem('auth_token');
+      const directUrl = `${BASE_URL}/api/stream/${videoId}${token ? `?auth=${token}` : ''}`;
+      
+      return directUrl;
     }
+  },
+
+  /**
+   * @deprecated Use getStreamUrl() instead
+   * Legacy method kept for backward compatibility
+   */
+  getAuthenticatedStreamUrl: async (videoId: string): Promise<string> => {
+    console.warn('⚠️ getAuthenticatedStreamUrl is deprecated, use getStreamUrl instead');
+    return streamAPI.getStreamUrl(videoId);
   },
 
   /**

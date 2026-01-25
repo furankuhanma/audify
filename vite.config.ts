@@ -1,6 +1,7 @@
 import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   // Load environment variables
@@ -8,16 +9,6 @@ export default defineConfig(({ mode }) => {
 
   return {
     server: {
-      fs: {
-        allow: [
-          // Allow serving from the project root (where index.html is)
-          path.resolve(__dirname, '.'),
-          // Explicitly allow src directory
-          path.resolve(__dirname, 'src'),
-          // Allow node_modules
-          path.resolve(__dirname, 'node_modules')
-        ]
-      },
       port: 3000,
       host: '0.0.0.0', // Allow access from local network
       proxy: {
@@ -28,15 +19,36 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    plugins: [react()],
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        manifest: {
+          name: 'CheriFI Music Streaming',
+          short_name: 'CheriFI',
+          description: 'A music streaming app that uses AI to generate playlists.',
+          theme_color: '#3b82f6',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'any maskable',
+            },
+          ],
+        },
+      }),
+    ],
   };
 });
