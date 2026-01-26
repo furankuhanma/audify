@@ -1,52 +1,51 @@
-import React from 'react';
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Search from './pages/Search';
-import Library from './pages/Library';
-import PlaylistDetail from './pages/PlaylistDetail';
-import OfflineLibrary from './pages/OfflineLibrary';
-import AIChat from './pages/AIChat';
-import AuthScreen from './pages/AuthScreen';
-import ProtectedRoute from './components/ProtectedRoute';
-import InstallPrompt from './components/InstallPrompt'; // ✅ NEW
-import { PlayerProvider } from './context/PlayerContext';
-import { LibraryProvider } from './context/LibraryContext';
-import { AuthProvider } from './context/AuthContext';
-import { LikeProvider } from './context/LikeContext';
-import { DownloadProvider } from './context/DownloadContext';
-import { HistoryProvider } from './context/HistoryContext';
-import { useServiceWorker } from './hooks/useServiceWorker'; // ✅ NEW
+import React from "react";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout";
+import Home from "./pages/Home";
+import Search from "./pages/Search";
+import Library from "./pages/Library";
+import PlaylistDetail from "./pages/PlaylistDetail";
+import OfflineLibrary from "./pages/OfflineLibrary";
+import AIChat from "./pages/AIChat";
+import AuthScreen from "./pages/AuthScreen";
+import ProtectedRoute from "./components/ProtectedRoute";
+import InstallPWA from "./components/InstallPWA"; // ✅ Import the install component
+import { PlayerProvider } from "./context/PlayerContext";
+import { LibraryProvider } from "./context/LibraryContext";
+import { AuthProvider } from "./context/AuthContext";
+import { LikeProvider } from "./context/LikeContext";
+import { DownloadProvider } from "./context/DownloadContext";
+import { HistoryProvider } from "./context/HistoryContext";
 
 const App: React.FC = () => {
-  // ✅ Register service worker
-  useServiceWorker();
-
   return (
     <AuthProvider>
       <LikeProvider>
         <DownloadProvider>
           <LibraryProvider>
-            <HistoryProvider> {/* ✅ NEW: Wrap with HistoryProvider */}
+            <HistoryProvider>
               <PlayerProvider>
                 <Router>
+                  {/* ✅ Add InstallPWA here - it will show on all pages */}
+                  <InstallPWA />
+
                   <Routes>
                     {/* Public: Auth screen */}
                     <Route path="/auth" element={<AuthScreen />} />
-                    
+
                     {/* Protected: AI Chat */}
-                    <Route 
-                      path="/ai-chat" 
+                    <Route
+                      path="/ai-chat"
                       element={
                         <ProtectedRoute>
                           <AIChat />
                         </ProtectedRoute>
-                      } 
+                      }
                     />
-                    
+
                     {/* Protected: Main app with Layout */}
-                    <Route 
-                      path="/" 
+                    <Route
+                      path="/"
                       element={
                         <ProtectedRoute>
                           <Layout />
@@ -62,7 +61,7 @@ const App: React.FC = () => {
                   </Routes>
                 </Router>
               </PlayerProvider>
-            </HistoryProvider> {/* ✅ NEW */}
+            </HistoryProvider>
           </LibraryProvider>
         </DownloadProvider>
       </LikeProvider>
