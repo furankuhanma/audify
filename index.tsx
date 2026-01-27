@@ -1,20 +1,12 @@
+// index.tsx - REMOVE the manual service worker code
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./public/src/App";
 
-// ✅ Register Service Worker
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((registration) => {
-        console.log("✅ Service Worker registered:", registration.scope);
-      })
-      .catch((error) => {
-        console.error("❌ Service Worker registration failed:", error);
-      });
-  });
-}
+// DELETE THIS ENTIRE BLOCK:
+// if ('serviceWorker' in navigator) {
+//   window.addEventListener('load', () => { ... });
+// }
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
