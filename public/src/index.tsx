@@ -1,7 +1,7 @@
 // index.tsx - REMOVE the manual service worker code
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./public/src/App";
+import App from "../src/App";
 
 // DELETE THIS ENTIRE BLOCK:
 // if ('serviceWorker' in navigator) {
